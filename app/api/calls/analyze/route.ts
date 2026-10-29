@@ -210,7 +210,7 @@ Return ONLY a single valid raw JSON object with NO markdown code fences and NO c
       );
     }
 
-    return NextResponse.json({ analysis });
+    return NextResponse.json({ ...analysis, analysis });
   } catch (err: any) {
     const message = err?.message || 'An unexpected error occurred while analyzing the call.';
     const status = message.toLowerCase().includes('rate limit') ? 429 : 500;

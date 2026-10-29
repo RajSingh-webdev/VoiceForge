@@ -7,11 +7,50 @@ export async function GET(req: NextRequest) {
   const isRealVoice = process.env.ELEVENLABS_REAL_VOICE === 'true';
   const handMadeAgentId = (process.env.ELEVENLABS_AGENT_ID || '').trim();
 
-  return NextResponse.json({
-    realVoice: isRealVoice,
-    handMadeAgentId: handMadeAgentId || null,
-    message: isRealVoice ? undefined : 'Voice is not connected yet',
-  });
+  const requestedAgentId = (
+    req.nextUrl.searchParams.get('agent_id') ||
+    req.nextUrl.searchParams.get('agentId') ||
+    ''
+  ).trim();
+
+  if (!requestedAgentId) {
+    return NextResponse.json({
+      realVoice: isRealVoice,
+      handMadeAgentId: handMadeAgentId || null,
+      message: isRealVoice ? undefined : 'Voice is not connected yet',
+    });
+  }
+
+  if (!isRealVoice) {
+    return NextResponse.json(
+      {
+        realVoice: false,
+        message: 'Voice is not connected yet',
+        signedUrl: `wss://api.elevenlabs.io/v1/convai/conversation?mock=true&agent_id=${requestedAgentId}`,
+        activeAgentId: requestedAgentId,
+      },
+      { status: 200 }
+    );
+  }
+
+  try {
+    await getAgent(requestedAgentId);
+    const { signedUrl } = await getSignedUrl(requestedAgentId);
+    return NextResponse.json({
+      signedUrl,
+      realVoice: true,
+      activeAgentId: requestedAgentId,
+    });
+  } catch (err: any) {
+    const msg: string = (err?.message || '').toLowerCase();
+    if (msg.includes('not found')) {
+      return NextResponse.json({ error: err.message }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: err?.message || 'Failed to create voice session.' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
