@@ -80,6 +80,7 @@ export default function VoicePicker() {
 
   // Deployed agent detection for direct live synchronization
   const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
+  const [handMadeAgentId, setHandMadeAgentId] = useState<string | null>(null);
   const [isApplyingLive, setIsApplyingLive] = useState<boolean>(false);
   const [liveSuccessMessage, setLiveSuccessMessage] = useState<string | null>(null);
 
@@ -106,7 +107,7 @@ export default function VoicePicker() {
     );
   }, [config?.languages]);
 
-  // Read deployment on mount
+  // Read deployment or hand-made agent on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -116,7 +117,19 @@ export default function VoicePicker() {
         }
       } catch {}
     }
+    async function checkAgent() {
+      try {
+        const res = await fetch('/api/voice/session');
+        const data = await res.json();
+        if (data.handMadeAgentId) {
+          setHandMadeAgentId(data.handMadeAgentId);
+        }
+      } catch {}
+    }
+    checkAgent();
   }, []);
+
+  const effectiveAgentId = deployment?.agentId || handMadeAgentId;
 
   // Load voices from /api/voices
   useEffect(() => {
@@ -253,7 +266,7 @@ export default function VoicePicker() {
 
   // Save and apply directly to Live ElevenLabs Agent with read-back verification
   const handleApplyToLiveAgent = async () => {
-    if (!config || !deployment?.agentId || isApplyingLive) return;
+    if (!config || !effectiveAgentId || isApplyingLive) return;
 
     setIsApplyingLive(true);
     setErrorMessage(null);
@@ -264,7 +277,7 @@ export default function VoicePicker() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentId: deployment.agentId,
+          agentId: effectiveAgentId,
           config,
         }),
       });
@@ -277,7 +290,7 @@ export default function VoicePicker() {
       // Record sync state
       const newHash = computeConfigHash(config);
       const now = new Date().toISOString();
-      setSavedSyncState(newHash, now, deployment.agentId);
+      setSavedSyncState(newHash, now, effectiveAgentId);
 
       setLiveSuccessMessage(
         `✓ Voice successfully applied & read-back verified! Primary voice: "${data.voiceId}"${
@@ -366,8 +379,8 @@ export default function VoicePicker() {
           </p>
         </div>
 
-        {/* Live Sync Button if Deployed */}
-        {deployment && !deployment.isSample && (
+        {/* Live Sync Button if Deployed or Configured in ELEVENLABS_AGENT_ID */}
+        {effectiveAgentId && (
           <button
             type="button"
             id="apply-voice-live-btn"

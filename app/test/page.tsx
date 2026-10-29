@@ -250,6 +250,60 @@ function TestConversationInner() {
       ? (deployedAgentId || handMadeAgentId)
       : (handMadeAgentId || deployedAgentId);
 
+  // Compute whether Hindi is the primary opening language
+  const isHindiPrimary = Boolean(
+    draftConfig?.languages?.some(
+      (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+    ) &&
+    (draftConfig?.languages?.length === 1 ||
+      (draftConfig?.languages?.[0] || '').toLowerCase().includes('hindi') ||
+      (draftConfig?.languages?.[0] || '').toLowerCase() === 'hi' ||
+      draftConfig?.voiceId === 'fTfuemKGBjYqG4ni4gw3' ||
+      draftConfig?.voiceId === 'qdykssD3wAUvtIw9wG8N' ||
+      (draftConfig?.voiceName || '').toLowerCase().includes('ritu') ||
+      (draftConfig?.voiceName || '').toLowerCase().includes('sandeep') ||
+      (draftConfig?.voiceName || '').toLowerCase().includes('hindi'))
+  );
+
+  const activeGreetingEnglish =
+    draftConfig?.welcomeMessage ||
+    'Hello, thank you for calling Smile Dental Clinic. I am an AI assistant. How may I help you today?';
+  const activeGreetingHindi =
+    draftConfig?.welcomeMessageHindi ||
+    'नमस्ते! मैं स्माइल डेंटल क्लिनिक की AI रिसेप्शनिस्ट हूँ। आज मैं आपकी क्या मदद कर सकती हूँ?';
+
+  const handleSetLanguagePrimary = (lang: 'hi' | 'en') => {
+    if (!draftConfig) return;
+    let updated: AgentConfig;
+    if (lang === 'hi') {
+      updated = {
+        ...draftConfig,
+        languages: ['Hindi', 'English'],
+        voiceId: 'fTfuemKGBjYqG4ni4gw3',
+        voiceName: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+        voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
+        voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+      };
+      addEvent('Language Mode', 'Set call opening language to Hindi (Ritu Rathore)');
+    } else {
+      updated = {
+        ...draftConfig,
+        languages: ['English', 'Hindi'],
+        voiceId: '21m00Tcm4TlvDq8ikWAM',
+        voiceName: 'Rachel (Default)',
+        voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
+        voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+      };
+      addEvent('Language Mode', 'Set call opening language to English (Rachel)');
+    }
+    setDraftConfig(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(AGENT_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+    }
+  };
+
   // Start conversation handler
   const handleToggleConversation = async () => {
     if (conversation.status === 'connected') {
@@ -264,6 +318,18 @@ function TestConversationInner() {
     setSessionError(null);
 
     let agentIdToUse = activeAgentId;
+
+    // Check if handMadeAgentId can be recovered from server
+    if (!agentIdToUse) {
+      try {
+        const sessionCheck = await fetch('/api/voice/session');
+        const sessionData = await sessionCheck.json();
+        if (sessionData?.handMadeAgentId) {
+          agentIdToUse = sessionData.handMadeAgentId;
+          setHandMadeAgentId(sessionData.handMadeAgentId);
+        }
+      } catch {}
+    }
 
     // If no agent ID exists yet, but user has a draft config from the Write page:
     if (!agentIdToUse && draftConfig) {
@@ -308,6 +374,33 @@ function TestConversationInner() {
         'No voice assistant found. Please go to the Write page to describe and generate your assistant first.'
       );
       return;
+    }
+
+    // Synchronize latest configuration with live ElevenLabs agent before connecting
+    if (draftConfig && agentIdToUse) {
+      try {
+        addEvent(
+          'Syncing Live Agent',
+          `Applying latest settings (${isHindiPrimary ? 'Hindi / Ritu Rathore' : 'English / Rachel'}) to ElevenLabs agent...`
+        );
+        const updateRes = await fetch('/api/agents/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId: agentIdToUse,
+            config: draftConfig,
+          }),
+        });
+        const updateData = await updateRes.json();
+        if (updateRes.ok) {
+          addEvent(
+            'Agent Synchronized',
+            `Confirmed on ElevenLabs: voice "${updateData.voiceId}" (${updateData.primaryLanguage === 'hi' ? 'Hindi primary' : 'English primary'})`
+          );
+        }
+      } catch (syncErr: any) {
+        console.warn('[Test] Auto-sync non-fatal warning:', syncErr);
+      }
     }
 
     setIsStarting(true);
@@ -415,11 +508,19 @@ function TestConversationInner() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="px-2.5 py-1 rounded-full bg-[#E8F1EF] text-[#0F3D3E] font-bold border border-[#1F8A84]/30 flex items-center space-x-1">
             <span>🎙️</span>
-            <span>Rachel (Natural Conversational Voice)</span>
+            <span>
+              {isHindiPrimary
+                ? (draftConfig?.voiceNameHindi || 'Ritu Rathore (Natural Indian Hindi Receptionist)')
+                : (draftConfig?.voiceName || 'Rachel (Natural English Voice)')}
+            </span>
           </span>
           <span className="px-2.5 py-1 rounded-full bg-[#E8F1EF] text-[#0F3D3E] font-bold border border-[#1F8A84]/30 flex items-center space-x-1">
             <span>🌐</span>
-            <span>English &amp; Hindi (automatic language switching)</span>
+            <span>
+              {isHindiPrimary
+                ? 'Primary: Hindi (Automatic English switching enabled)'
+                : 'Primary: English (Automatic Hindi switching enabled)'}
+            </span>
           </span>
         </div>
         <span className="text-[11px] text-[#1F8A84] font-medium flex items-center space-x-1">
@@ -461,6 +562,60 @@ function TestConversationInner() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Test Call Opening Language Mode Selector */}
+        <div className="mb-6 max-w-md w-full mx-auto p-4 rounded-2xl bg-[#E8F1EF]/60 border border-[#1F8A84]/25 text-left">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider flex items-center space-x-1">
+              <span>🌐</span>
+              <span>Call Opening Mode</span>
+            </span>
+            <span className="text-[11px] font-semibold text-[#1F8A84]">
+              {isHindiPrimary ? '🇮🇳 Hindi Opening' : '🇬🇧 English Opening'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              type="button"
+              id="test-mode-hindi-btn"
+              onClick={() => handleSetLanguagePrimary('hi')}
+              className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                isHindiPrimary
+                  ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] shadow-sm'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>🇮🇳</span>
+              <span>Start in Hindi</span>
+            </button>
+            <button
+              type="button"
+              id="test-mode-english-btn"
+              onClick={() => handleSetLanguagePrimary('en')}
+              className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                !isHindiPrimary
+                  ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] shadow-sm'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>🇬🇧</span>
+              <span>Start in English</span>
+            </button>
+          </div>
+
+          <div className="p-3 bg-white rounded-xl border border-gray-200 text-xs">
+            <div className="flex items-center justify-between text-gray-500 text-[11px] mb-1">
+              <span className="font-semibold text-[#0F3D3E]">
+                Voice: {isHindiPrimary ? (draftConfig?.voiceNameHindi || 'Ritu Rathore (Natural Indian Hindi)') : (draftConfig?.voiceName || 'Rachel (Natural English)')}
+              </span>
+              <span className="text-emerald-700 font-medium">Bilingual duplex active</span>
+            </div>
+            <p className="text-gray-700 italic leading-snug">
+              &ldquo;{isHindiPrimary ? activeGreetingHindi : activeGreetingEnglish}&rdquo;
+            </p>
+          </div>
         </div>
 
         {/* Clear Start / End Conversation Button */}

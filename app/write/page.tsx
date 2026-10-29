@@ -1211,21 +1211,52 @@ export default function WritePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
               {/* Languages */}
               <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20">
-                <span className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
-                  Languages
-                </span>
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  {config.languages.map((lang, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 rounded-full bg-white text-[#0F3D3E] border border-[#1F8A84]/30 text-xs font-bold shadow-sm"
-                    >
-                      🌐 {lang}
-                    </span>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
+                    Opening Language
+                  </span>
+                  <span className="text-[10px] text-[#1F8A84] font-semibold">
+                    Mid-call auto-switch active
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateConfigField('languages', ['Hindi', 'English']);
+                      updateConfigField('voiceName', 'Ritu Rathore — Natural Indian Hindi (Receptionist)');
+                      updateConfigField('voiceId', 'fTfuemKGBjYqG4ni4gw3');
+                      updateConfigField('voiceIdHindi', 'fTfuemKGBjYqG4ni4gw3');
+                      updateConfigField('voiceNameHindi', 'Ritu Rathore — Natural Indian Hindi (Receptionist)');
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                      config.languages[0]?.toLowerCase().includes('hindi') || config.voiceId === 'fTfuemKGBjYqG4ni4gw3'
+                        ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                    }`}
+                  >
+                    <span>🇮🇳</span>
+                    <span>Hindi Primary</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateConfigField('languages', ['English', 'Hindi']);
+                      updateConfigField('voiceName', 'Rachel (Default)');
+                      updateConfigField('voiceId', '21m00Tcm4TlvDq8ikWAM');
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                      !config.languages[0]?.toLowerCase().includes('hindi') && config.voiceId !== 'fTfuemKGBjYqG4ni4gw3'
+                        ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                    }`}
+                  >
+                    <span>🇬🇧</span>
+                    <span>English Primary</span>
+                  </button>
                 </div>
                 <p className="text-[11px] text-[#1F8A84]">
-                  Callers can speak English or Hindi; assistant switches automatically mid-call.
+                  Calls open in the selected language; callers can freely switch mid-call.
                 </p>
               </div>
 
@@ -1252,6 +1283,13 @@ export default function WritePage() {
                     updateConfigField('voiceName', val);
                     if (voiceMap[val]) {
                       updateConfigField('voiceId', voiceMap[val]);
+                    }
+                    if (val.includes('Hindi') || val.includes('Ritu') || val.includes('Sandeep')) {
+                      updateConfigField('languages', ['Hindi', 'English']);
+                      updateConfigField('voiceIdHindi', voiceMap[val]);
+                      updateConfigField('voiceNameHindi', val);
+                    } else if (val.includes('Rachel')) {
+                      updateConfigField('languages', ['English', 'Hindi']);
                     }
                   }}
                   className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none mb-1.5"

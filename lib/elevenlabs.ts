@@ -502,6 +502,25 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
     );
 
+  const hasEnglish =
+    !Array.isArray(config.languages) ||
+    config.languages.length === 0 ||
+    config.languages.some(
+      (l) => (l || '').toLowerCase().includes('english') || (l || '').toLowerCase() === 'en'
+    );
+
+  // If user explicitly listed Hindi first, only Hindi, or selected an Indian Hindi voice as primary:
+  const isHindiPrimary =
+    hasHindi &&
+    (config.languages.length === 1 ||
+      (config.languages[0] || '').toLowerCase().includes('hindi') ||
+      (config.languages[0] || '').toLowerCase() === 'hi' ||
+      config.voiceId === 'fTfuemKGBjYqG4ni4gw3' ||
+      config.voiceId === 'qdykssD3wAUvtIw9wG8N' ||
+      (config.voiceName || '').toLowerCase().includes('ritu') ||
+      (config.voiceName || '').toLowerCase().includes('sandeep') ||
+      (config.voiceName || '').toLowerCase().includes('hindi'));
+
   let welcomeMessageHindi = '';
   const languagePresets: Record<string, any> = {};
   let chosenHindiVoiceId: string | undefined = undefined;
@@ -515,13 +534,59 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       config.name
     );
 
-    // Requirement 6: Dedicated Indian Hindi voice for language preset
+    // Requirement 6: Dedicated Indian Hindi voice
     chosenHindiVoiceId =
       config.voiceIdHindi?.trim() ||
       (config.voiceId && (config.voiceId === 'fTfuemKGBjYqG4ni4gw3' || config.voiceId === 'qdykssD3wAUvtIw9wG8N')
         ? config.voiceId.trim()
         : 'fTfuemKGBjYqG4ni4gw3'); // Ritu Rathore - Natural Conversational Hindi (verified reception voice)
+  }
 
+  const asrConfig = {
+    provider: 'scribe_realtime',
+    quality: 'high',
+    user_input_audio_format: 'pcm_16000',
+  };
+
+  const chosenVoiceId =
+    config?.voiceId && typeof config.voiceId === 'string' && config.voiceId.trim()
+      ? config.voiceId.trim()
+      : defaultVoiceId;
+
+  // If Hindi is primary: Agent boots up directly in Hindi with Ritu Rathore & eleven_flash_v2_5,
+  // and English is available via language_presets.en.
+  // If English is primary: Agent boots up in English, and language_presets.hi handles Hindi.
+  let activeFirstMessage = welcomeMessage;
+  let activeLanguage = 'en';
+  let activeTtsModel = ttsModelId;
+  let activeVoiceId = chosenVoiceId;
+
+  if (isHindiPrimary && chosenHindiVoiceId) {
+    activeFirstMessage = welcomeMessageHindi;
+    activeLanguage = 'hi';
+    activeTtsModel = 'eleven_flash_v2_5';
+    activeVoiceId = chosenHindiVoiceId;
+
+    if (hasEnglish) {
+      const englishPresetVoiceId =
+        config.voiceId && config.voiceId !== 'fTfuemKGBjYqG4ni4gw3' && config.voiceId !== 'qdykssD3wAUvtIw9wG8N'
+          ? config.voiceId
+          : defaultVoiceId;
+
+      languagePresets['en'] = {
+        overrides: {
+          agent: {
+            first_message: welcomeMessage,
+            language: 'en',
+          },
+          tts: {
+            model_id: 'eleven_flash_v2',
+            voice_id: englishPresetVoiceId,
+          },
+        },
+      };
+    }
+  } else if (hasHindi && chosenHindiVoiceId) {
     languagePresets['hi'] = {
       overrides: {
         agent: {
@@ -536,28 +601,17 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     };
   }
 
-  const asrConfig = {
-    provider: 'scribe_realtime',
-    quality: 'high',
-    user_input_audio_format: 'pcm_16000',
-  };
-
-  const chosenVoiceId =
-    config?.voiceId && typeof config.voiceId === 'string' && config.voiceId.trim()
-      ? config.voiceId.trim()
-      : defaultVoiceId;
-
   const conversationConfig: any = {
     agent: {
       prompt: {
         prompt: systemPrompt,
       },
-      first_message: welcomeMessage,
-      language: 'en',
+      first_message: activeFirstMessage,
+      language: activeLanguage,
     },
     tts: {
-      model_id: ttsModelId,
-      voice_id: chosenVoiceId,
+      model_id: activeTtsModel,
+      voice_id: activeVoiceId,
     },
     asr: asrConfig,
   };
@@ -641,9 +695,9 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     welcomeMessage,
     welcomeMessageHindi: hasHindi ? welcomeMessageHindi : undefined,
     hasHindi,
-    primaryLanguage: 'en',
+    primaryLanguage: isHindiPrimary ? 'hi' : 'en',
     languagePresets,
-    chosenVoiceId,
+    chosenVoiceId: activeVoiceId,
     chosenHindiVoiceId: hasHindi ? chosenHindiVoiceId : undefined,
   };
 }

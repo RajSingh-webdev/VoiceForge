@@ -117,7 +117,8 @@ export async function POST(req: NextRequest) {
     const actualLanguage = (readBackAgent?.conversationConfig?.agent?.language || '').trim().toLowerCase();
     const actualVoiceId = (readBackAgent?.conversationConfig?.tts?.voice_id || '').trim();
 
-    const expectedFirstMessage = welcomeMessage.trim();
+    const isHindiPrimary = (primaryLanguage || '').toLowerCase() === 'hi';
+    const expectedFirstMessage = (isHindiPrimary && welcomeMessageHindi ? welcomeMessageHindi : welcomeMessage).trim();
     const expectedSystemPrompt = systemPrompt.trim();
     const expectedLanguage = (primaryLanguage || 'en').trim().toLowerCase();
     const expectedVoiceId = (chosenVoiceId || '').trim();
@@ -127,34 +128,46 @@ export async function POST(req: NextRequest) {
     const languageMatches = actualLanguage === expectedLanguage;
     const voiceIdMatches = !expectedVoiceId || actualVoiceId === expectedVoiceId;
 
-    // Check language preset for Hindi when enabled
+    // Check language presets when enabled
     let languagePresetsMatch = true;
-    let hindiPresetDiff = '';
+    let presetDiff = '';
     if (hasHindi) {
       const readBackPresets = readBackAgent?.conversationConfig?.language_presets;
-      const hindiPreset = readBackPresets?.hi;
-      if (!hindiPreset) {
-        languagePresetsMatch = false;
-        hindiPresetDiff = 'missing Hindi language preset';
-      } else if (welcomeMessageHindi) {
-        const actualHindiGreeting = (
-          hindiPreset.overrides?.agent?.first_message ||
-          hindiPreset.first_message ||
-          ''
-        ).trim();
-        if (actualHindiGreeting && actualHindiGreeting !== welcomeMessageHindi.trim()) {
+      if (isHindiPrimary) {
+        // If Hindi is primary, verify English preset if present
+        const enPreset = readBackPresets?.en;
+        if (enPreset?.overrides?.agent?.first_message) {
+          if (enPreset.overrides.agent.first_message.trim() !== welcomeMessage.trim()) {
+            languagePresetsMatch = false;
+            presetDiff = 'English preset first_message differed from expected';
+          }
+        }
+      } else {
+        // If English is primary, verify Hindi preset
+        const hindiPreset = readBackPresets?.hi;
+        if (!hindiPreset) {
           languagePresetsMatch = false;
-          hindiPresetDiff = 'Hindi welcome message differed from expected';
-        } else if (hindiPreset.overrides?.tts?.model_id && hindiPreset.overrides.tts.model_id !== 'eleven_flash_v2_5') {
-          languagePresetsMatch = false;
-          hindiPresetDiff = 'Hindi TTS model override differed from expected';
-        } else if (
-          chosenHindiVoiceId &&
-          hindiPreset.overrides?.tts?.voice_id &&
-          hindiPreset.overrides.tts.voice_id !== chosenHindiVoiceId
-        ) {
-          languagePresetsMatch = false;
-          hindiPresetDiff = `Hindi voice override differed from expected (expected "${chosenHindiVoiceId}", received "${hindiPreset.overrides.tts.voice_id}")`;
+          presetDiff = 'missing Hindi language preset';
+        } else if (welcomeMessageHindi) {
+          const actualHindiGreeting = (
+            hindiPreset.overrides?.agent?.first_message ||
+            hindiPreset.first_message ||
+            ''
+          ).trim();
+          if (actualHindiGreeting && actualHindiGreeting !== welcomeMessageHindi.trim()) {
+            languagePresetsMatch = false;
+            presetDiff = 'Hindi welcome message differed from expected';
+          } else if (hindiPreset.overrides?.tts?.model_id && hindiPreset.overrides.tts.model_id !== 'eleven_flash_v2_5') {
+            languagePresetsMatch = false;
+            presetDiff = 'Hindi TTS model override differed from expected';
+          } else if (
+            chosenHindiVoiceId &&
+            hindiPreset.overrides?.tts?.voice_id &&
+            hindiPreset.overrides.tts.voice_id !== chosenHindiVoiceId
+          ) {
+            languagePresetsMatch = false;
+            presetDiff = `Hindi voice override differed from expected (expected "${chosenHindiVoiceId}", received "${hindiPreset.overrides.tts.voice_id}")`;
+          }
         }
       }
     }
@@ -171,7 +184,7 @@ export async function POST(req: NextRequest) {
         differences.push(`primary language (expected "${expectedLanguage}", received "${actualLanguage || 'none'}")`);
       }
       if (!languagePresetsMatch) {
-        differences.push(`Hindi language settings (${hindiPresetDiff || 'preset did not match'})`);
+        differences.push(`language presets settings (${presetDiff || 'preset did not match'})`);
       }
       if (!voiceIdMatches) {
         differences.push(`voice ID (expected "${expectedVoiceId}", received "${actualVoiceId || 'none'}")`);
