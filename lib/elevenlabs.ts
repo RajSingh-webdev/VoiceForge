@@ -163,7 +163,11 @@ export function buildAgentSystemPrompt(config: AgentConfig): string {
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
 - Escalation & Human Hand-off: If the caller asks to speak to a person, mentions pain, or reports an emergency: verbally inform them that you are connecting them to a team member and provide the direct staff contact (${config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210'}).
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
-- Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).
+- Bilingual Language & Accent Alignment: You are natively bilingual in English and Hindi.
+  * When the caller speaks in English: respond strictly in fluent, natural English with an authentic English accent.
+  * When the caller speaks in Hindi or Hinglish, or switches mid-conversation: switch immediately to speaking in natural Hindi with an authentic Indian Hindi accent.
+  * When the caller switches back to English: switch back immediately to speaking in natural English.
+  * Maintain clean accent alignment at all times: never speak Hindi in a foreign/English accent, and never speak English in an unnatural accent. Match the caller's language seamlessly on every turn.
 - Concluding the Call & Hanging Up: When the caller says goodbye, indicates they are finished (e.g. "that's all", "no more questions", "thank you, bye", "धन्यवाद", "अलविदा"), or the conversation has reached a natural conclusion: warmly wish them well and immediately execute the end_call tool to hang up. Do not linger or repeatedly ask if they are still there once the conversation has concluded.`);
 
   return sections.join('\n\n');
@@ -549,31 +553,29 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     user_input_audio_format: 'pcm_16000',
   };
 
-  const chosenVoiceId =
-    config?.voiceId && typeof config.voiceId === 'string' && config.voiceId.trim()
+  const englishPresetVoiceId =
+    config.voiceId && config.voiceId !== 'fTfuemKGBjYqG4ni4gw3' && config.voiceId !== 'qdykssD3wAUvtIw9wG8N'
       ? config.voiceId.trim()
       : defaultVoiceId;
 
-  // If Hindi is primary: Agent boots up directly in Hindi with Ritu Rathore & eleven_flash_v2_5,
-  // and English is available via language_presets.en.
-  // If English is primary: Agent boots up in English, and language_presets.hi handles Hindi.
+  // Set opening speaker details based on selected opening mode
   let activeFirstMessage = welcomeMessage;
   let activeLanguage = 'en';
   let activeTtsModel = ttsModelId;
-  let activeVoiceId = chosenVoiceId;
+  let activeVoiceId = englishPresetVoiceId;
 
   if (isHindiPrimary && chosenHindiVoiceId) {
     activeFirstMessage = welcomeMessageHindi;
     activeLanguage = 'hi';
     activeTtsModel = 'eleven_flash_v2_5';
     activeVoiceId = chosenHindiVoiceId;
+  }
 
+  // Bidirectional Language Presets:
+  // When bilingual (English & Hindi), populate BOTH presets so ElevenLabs dynamically switches
+  // to the native voice and TTS model for each turn based on caller speech.
+  if (hasHindi && chosenHindiVoiceId) {
     if (hasEnglish) {
-      const englishPresetVoiceId =
-        config.voiceId && config.voiceId !== 'fTfuemKGBjYqG4ni4gw3' && config.voiceId !== 'qdykssD3wAUvtIw9wG8N'
-          ? config.voiceId
-          : defaultVoiceId;
-
       languagePresets['en'] = {
         overrides: {
           agent: {
@@ -587,7 +589,6 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         },
       };
     }
-  } else if (hasHindi && chosenHindiVoiceId) {
     languagePresets['hi'] = {
       overrides: {
         agent: {
@@ -602,16 +603,33 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     };
   }
 
+  const builtInTools: Record<string, any> = {
+    end_call: {
+      name: 'end_call',
+      type: 'system',
+      params: {
+        system_tool_type: 'end_call',
+      },
+    },
+  };
+
+  // Enable dynamic language detection so ElevenLabs automatically triggers presets on user language switches
+  if (hasHindi && hasEnglish) {
+    builtInTools.language_detection = {
+      name: 'language_detection',
+      type: 'system',
+      params: {
+        system_tool_type: 'language_detection',
+        only_at_conversation_start: false,
+      },
+    };
+  }
+
   const conversationConfig: any = {
     agent: {
       prompt: {
         prompt: systemPrompt,
-        built_in_tools: {
-          end_call: {
-            name: 'end_call',
-            type: 'system',
-          },
-        },
+        built_in_tools: builtInTools,
       },
       first_message: activeFirstMessage,
       language: activeLanguage,

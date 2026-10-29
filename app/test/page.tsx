@@ -205,11 +205,19 @@ function TestConversationInner() {
     },
     onAgentToolRequest: (props) => {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Custom Tool';
-      addEvent('Tool Call Requested', `Agent requested tool: ${toolName}`);
+      if (toolName === 'language_detection') {
+        addEvent('Language Detected', 'Caller switched language — adapting voice preset & native accent');
+      } else {
+        addEvent('Tool Call Requested', `Agent requested tool: ${toolName}`);
+      }
     },
     onAgentToolResponse: (props) => {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Custom Tool';
-      addEvent('Tool Response', `Received tool result for: ${toolName}`);
+      if (toolName === 'language_detection') {
+        addEvent('Voice Switched', 'Switched voice & pronunciation model to match caller language');
+      } else {
+        addEvent('Tool Response', `Received tool result for: ${toolName}`);
+      }
     },
     onUnhandledClientToolCall: (props) => {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Client Tool';
@@ -616,9 +624,13 @@ function TestConversationInner() {
               </span>
               <span className="text-emerald-700 font-medium">Bilingual English &amp; Hindi</span>
             </div>
-            <p className="text-gray-700 italic leading-snug">
+            <p className="text-gray-700 italic leading-snug mb-2">
               &ldquo;{isHindiPrimary ? activeGreetingHindi : activeGreetingEnglish}&rdquo;
             </p>
+            <div className="text-[10px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-1.5">
+              <span>🔄 Auto mid-call voice switch:</span>
+              <span className="font-medium text-[#0F3D3E]">🇬🇧 Rachel ↔ 🇮🇳 Ritu Rathore</span>
+            </div>
           </div>
         </div>
 
