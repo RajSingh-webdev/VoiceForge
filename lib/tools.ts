@@ -157,7 +157,7 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
       const bookingStatus = getBookingToolStatus(currentOrigin);
       normalizedTools.push({
         name: 'Appointment Booking Webhook',
-        purpose: 'Record and confirm appointment bookings via inbound webhook.',
+        purpose: 'Record and confirm appointment or reservation bookings via inbound webhook.',
         status: bookingStatus.status,
       });
       continue;
@@ -170,28 +170,24 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
     });
   }
 
-  // Ensure Transfer Call to Person tool is included when escalation is required
-  const alreadyHasEscalationTool = normalizedTools.some(
-    (t) =>
-      t.name.toLowerCase().includes('transfer') ||
-      t.name.toLowerCase().includes('escalat') ||
-      t.name.toLowerCase().includes('human')
-  );
-
-  const hasEscalationNeed =
-    hasHumanTransferTool ||
-    (config.guardrails || []).some(
-      (g) =>
-        g.toLowerCase().includes('human') ||
-        g.toLowerCase().includes('escalat') ||
-        g.toLowerCase().includes('transfer')
-    );
-
-  if (hasEscalationNeed && !alreadyHasEscalationTool) {
-    normalizedTools.push({
+  // Always ensure Transfer Call to Person tool is included as a fixed core capability
+  const alreadyHasEscalationTool = normalizedTools.some((t) => isHumanTransferTool(t.name, t.purpose));
+  if (!alreadyHasEscalationTool) {
+    normalizedTools.unshift({
       name: 'Transfer Call to Person',
       purpose: 'Transfers active call directly to a live human staff member when requested or in case of emergency.',
       status: 'Active — Live Call Transfer to Person',
+    });
+  }
+
+  // Always ensure Appointment Booking Webhook is included as a fixed core capability
+  const alreadyHasBookingTool = normalizedTools.some((t) => isAppointmentBookingTool(t.name, t.purpose));
+  if (!alreadyHasBookingTool) {
+    const bookingStatus = getBookingToolStatus(currentOrigin);
+    normalizedTools.push({
+      name: 'Appointment Booking Webhook',
+      purpose: 'Record and confirm appointment or reservation bookings via inbound webhook.',
+      status: bookingStatus.status,
     });
   }
 

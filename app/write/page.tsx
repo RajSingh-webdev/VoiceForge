@@ -627,6 +627,15 @@ export default function WritePage() {
 
   const removeTool = (index: number) => {
     if (!config) return;
+    const targetTool = config.tools[index];
+    if (
+      targetTool &&
+      (isHumanTransferTool(targetTool.name, targetTool.purpose) ||
+        isAppointmentBookingTool(targetTool.name, targetTool.purpose))
+    ) {
+      // Core built-in capabilities are permanent and cannot be removed
+      return;
+    }
     setConfig({ ...config, tools: config.tools.filter((_, i) => i !== index) });
   };
 
@@ -1741,86 +1750,99 @@ export default function WritePage() {
                     </div>
                   </div>
 
-                  {/* Tool 2: Appointment Booking Webhook */}
-                  {config.tools.some((t) => isAppointmentBookingTool(t.name, t.purpose)) && (
-                    <div className="p-5 rounded-2xl bg-[#E8F1EF]/30 border border-[#1F8A84]/25 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#1F8A84] text-white flex items-center justify-center text-base font-bold shrink-0">
-                            📅
-                          </div>
-                          <div>
-                            <input
-                              type="text"
-                              value={
-                                config.tools.find((t) =>
-                                  isAppointmentBookingTool(t.name, t.purpose)
-                                )?.name || 'Appointment Booking Webhook'
-                              }
-                              onChange={(e) => {
-                                const idx = config.tools.findIndex((t) =>
-                                  isAppointmentBookingTool(t.name, t.purpose)
-                                );
-                                if (idx >= 0) updateTool(idx, 'name', e.target.value);
-                              }}
-                              aria-label="Booking Tool Name"
-                              className="font-bold text-sm text-[#0F3D3E] bg-white px-2 py-1 rounded-md border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                            />
-                            <p className="text-xs text-gray-600 mt-1">
-                              Collects customer name, preferred date and time, and confirms appointment or reservation bookings into your calendar or CRM.
-                            </p>
-                          </div>
+                  {/* Tool 2: Appointment Booking Webhook (Fixed Core Capability) */}
+                  <div className="p-5 rounded-2xl bg-[#E8F1EF]/30 border border-[#1F8A84]/25 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#1F8A84] text-white flex items-center justify-center text-base font-bold shrink-0">
+                          📅
                         </div>
-                        <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-300 shrink-0">
-                          Webhook: /api/webhooks/booking
-                        </span>
+                        <div>
+                          <input
+                            type="text"
+                            value={
+                              config.tools.find((t) =>
+                                isAppointmentBookingTool(t.name, t.purpose)
+                              )?.name || 'Appointment Booking Webhook'
+                            }
+                            onChange={(e) => {
+                              const idx = config.tools.findIndex((t) =>
+                                isAppointmentBookingTool(t.name, t.purpose)
+                              );
+                              if (idx >= 0) {
+                                updateTool(idx, 'name', e.target.value);
+                              } else {
+                                setConfig({
+                                  ...config,
+                                  tools: [
+                                    ...config.tools,
+                                    {
+                                      name: e.target.value,
+                                      purpose: 'Record and confirm appointment or reservation bookings via inbound webhook.',
+                                      status: 'Not connected — requires public HTTPS webhook URL (currently on localhost)',
+                                    },
+                                  ],
+                                });
+                              }
+                            }}
+                            aria-label="Booking Tool Name"
+                            className="font-bold text-sm text-[#0F3D3E] bg-white px-2 py-1 rounded-md border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            Collects customer name, preferred date and time, and confirms appointment or reservation bookings into your calendar or CRM.
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="pt-2 border-t border-[#1F8A84]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span className="text-xs text-[#1F8A84]">
-                          Ready to accept live appointment bookings during voice calls.
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleTestBooking}
-                          disabled={isTestingBooking}
-                          className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center space-x-1 shadow-2xs shrink-0"
-                        >
-                          <span>{isTestingBooking ? 'Testing...' : '📅 Test Booking'}</span>
-                        </button>
-                      </div>
-                      {bookingResult && (
-                        <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
-                          {bookingResult}
-                        </p>
-                      )}
+                      <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-300 shrink-0">
+                        Webhook: /api/webhooks/booking
+                      </span>
                     </div>
-                  )}
+
+                    <div className="pt-2 border-t border-[#1F8A84]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-xs text-[#1F8A84]">
+                        Ready to accept live appointment bookings during voice calls.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleTestBooking}
+                        disabled={isTestingBooking}
+                        className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center space-x-1 shadow-2xs shrink-0"
+                      >
+                        <span>{isTestingBooking ? 'Testing...' : '📅 Test Booking'}</span>
+                      </button>
+                    </div>
+                    {bookingResult && (
+                      <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
+                        {bookingResult}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Any Other Custom Tools */}
-                  {config.tools
-                    .filter(
-                      (t) =>
-                        !isHumanTransferTool(t.name, t.purpose) &&
-                        !isAppointmentBookingTool(t.name, t.purpose)
-                    )
-                    .map((tool, idx) => (
+                  {config.tools.map((tool, toolIdx) => {
+                    if (
+                      isHumanTransferTool(tool.name, tool.purpose) ||
+                      isAppointmentBookingTool(tool.name, tool.purpose)
+                    ) {
+                      return null;
+                    }
+                    return (
                       <div
-                        key={idx}
+                        key={toolIdx}
                         className="p-4 rounded-xl bg-white border border-[#1F8A84]/25 space-y-2"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <input
                             type="text"
                             value={tool.name}
-                            onChange={(e) => updateTool(idx, 'name', e.target.value)}
-                            aria-label={`Tool ${idx + 1} Name`}
+                            onChange={(e) => updateTool(toolIdx, 'name', e.target.value)}
+                            aria-label={`Tool ${toolIdx + 1} Name`}
                             className="font-bold text-sm text-[#0F3D3E] bg-[#E8F1EF]/30 p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                           />
                           <button
                             type="button"
-                            onClick={() => removeTool(idx)}
-                            aria-label={`Remove Tool ${idx + 1}`}
+                            onClick={() => removeTool(toolIdx)}
+                            aria-label={`Remove Tool ${toolIdx + 1}`}
                             className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
                           >
                             &times;
@@ -1829,12 +1851,13 @@ export default function WritePage() {
                         <textarea
                           rows={2}
                           value={tool.purpose}
-                          onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
-                          aria-label={`Tool ${idx + 1} Purpose`}
+                          onChange={(e) => updateTool(toolIdx, 'purpose', e.target.value)}
+                          aria-label={`Tool ${toolIdx + 1} Purpose`}
                           className="w-full p-2 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                         />
                       </div>
-                    ))}
+                    );
+                  })}
 
                   {config.tools.length === 0 && (
                     <div className="p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-xs text-gray-600 text-center">
