@@ -21,7 +21,6 @@ export default function DeployPage() {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [copiedSnippet, setCopiedSnippet] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
 
   // Booking Webhook state
@@ -112,12 +111,6 @@ export default function DeployPage() {
 
   const shareUrl = deployment ? `${origin}/agent/${deployment.agentId}` : '';
 
-  const widgetSnippet = deployment
-    ? deployment.isSample
-      ? `<!-- VoiceForge Voice Assistant Widget (Not connected yet) -->\n<!-- Sample snippet. The real widget code will use your ElevenLabs agent ID once connected. -->\n<div id="voiceforge-agent" data-agent-id="${deployment.agentId}"></div>\n<!-- Official widget script will be provided upon ElevenLabs connection -->`
-      : `<!-- VoiceForge Live ElevenLabs Web Widget -->\n<elevenlabs-convai agent-id="${deployment.agentId}"></elevenlabs-convai>\n<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>\n\n<!-- Responsive Embed Iframe -->\n<iframe src="${origin}/agent/${deployment.agentId}?embed=true" width="100%" height="650" frameborder="0" allow="microphone"></iframe>`
-    : '';
-
   const handleTestWebhook = async () => {
     setIsTestingWebhook(true);
     setWebhookError(null);
@@ -156,13 +149,6 @@ export default function DeployPage() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleCopySnippet = () => {
-    if (!widgetSnippet) return;
-    navigator.clipboard.writeText(widgetSnippet);
-    setCopiedSnippet(true);
-    setTimeout(() => setCopiedSnippet(false), 2500);
-  };
-
   return (
     <div className="w-full max-w-5xl mx-auto text-left py-6 px-4 sm:px-6">
       {/* Header */}
@@ -176,7 +162,7 @@ export default function DeployPage() {
               {deployment?.isSample && <SampleDataBadge />}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
-              Launch your voice assistant via direct shareable web links and website widgets.
+              Share your voice assistant directly with clients and patients via a simple web link.
             </p>
           </div>
         </div>
@@ -219,7 +205,7 @@ export default function DeployPage() {
               <p className="text-xs sm:text-sm text-[#1F8A84] mt-1">
                 {deployment
                   ? 'Your assistant has been created and is ready to test.'
-                  : 'Create your assistant to unlock your share link and website widget.'}
+                  : 'Create your assistant to unlock your share link.'}
               </p>
               {deployment && (
                 <details className="mt-2 text-xs text-gray-500">
@@ -289,100 +275,69 @@ export default function DeployPage() {
             </div>
           )}
 
-          {/* Deployed Channels (3 Cards) */}
+          {/* Deployed Channels */}
           {deployment && (
             <div className="space-y-6 mb-8">
-              <h2 className="text-lg font-bold text-[#0F3D3E]">
-                Deployment Channels
-              </h2>
+              {/* Share Your Assistant */}
+              <div>
+                <h2 className="text-lg font-bold text-[#0F3D3E] mb-3">
+                  Share Your Assistant
+                </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Card 1: Share Link */}
-                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
+                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
                         🔗
                       </div>
-                      <span className="text-[11px] font-bold text-[#1F8A84] uppercase tracking-wider">
-                        Web Link
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-[#0F3D3E] mb-1">
-                      Direct Share Link
-                    </h3>
-                    <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-                      Share this link with patients or clients for quick browser-based voice interaction.
-                    </p>
-
-                    {(origin.includes('localhost') || origin.includes('127.0.0.1')) && (
-                      <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
-                        <strong>Local testing address:</strong> This link runs on your local computer ({origin}). When deployed to production, your public web domain will appear here for customers.
+                      <div>
+                        <h3 className="text-base font-bold text-[#0F3D3E]">
+                          Shareable Web Link
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Share this link with your customers or patients for instant voice calls in their browser.
+                        </p>
                       </div>
-                    )}
-
-                    <div className="p-2.5 rounded-lg bg-[#E8F1EF]/40 border border-[#1F8A84]/20 font-mono text-[11px] text-[#0F3D3E] break-all mb-4 select-all">
-                      {shareUrl}
                     </div>
+                    <span className="text-[11px] font-bold text-[#1F8A84] uppercase tracking-wider bg-[#E8F1EF] px-2.5 py-1 rounded-full border border-[#1F8A84]/20 shrink-0">
+                      Active Link
+                    </span>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                  {(origin.includes('localhost') || origin.includes('127.0.0.1')) && (
+                    <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
+                      <strong>Local testing address:</strong> This link runs on your local computer ({origin}). When deployed to production, your public web domain will appear here for customers.
+                    </div>
+                  )}
+
+                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 font-mono text-xs text-[#0F3D3E] break-all mb-4 select-all">
+                    {shareUrl}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={handleCopyLink}
-                      className="w-full py-2 px-3 rounded-lg bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center justify-center space-x-1.5"
+                      className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center justify-center space-x-2 shadow-xs"
                     >
-                      <span>{copiedLink ? '✓ Copied to clipboard!' : '📋 Copy link'}</span>
+                      <span>{copiedLink ? '✓ Link copied!' : '📋 Copy Link'}</span>
                     </button>
                     <Link
                       href={`/agent/${deployment.agentId}`}
                       target="_blank"
-                      className="w-full py-1.5 px-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold text-center block transition-colors"
+                      className="w-full sm:w-auto py-2.5 px-5 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold text-center block transition-colors shadow-2xs"
                     >
-                      Open public preview ↗
+                      Open Assistant ↗
                     </Link>
                   </div>
                 </div>
 
-                {/* Card 2: Website Widget */}
-                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                        💻
-                      </div>
-                      <span className="text-[11px] font-bold text-[#1F8A84] uppercase tracking-wider">
-                        Embed
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-[#0F3D3E] mb-1">
-                      Website Widget
-                    </h3>
-                    <p className="text-xs text-gray-600 mb-2 leading-relaxed">
-                      Embed this assistant directly onto your business homepage.
-                    </p>
-
-                    {/* Notice required by specification: Clearly labelled as not connected yet */}
-                    <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
-                      <strong>Not connected yet.</strong> Sample snippet. The real widget code will use your ElevenLabs agent ID once connected.
-                    </div>
-
-                    <pre className="p-2.5 rounded-lg bg-gray-900 text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-36 mb-4 whitespace-pre-wrap select-all">
-                      {widgetSnippet}
-                    </pre>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={handleCopySnippet}
-                      className="w-full py-2 px-3 rounded-lg bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center justify-center space-x-1.5"
-                    >
-                      <span>{copiedSnippet ? '✓ Snippet copied!' : '📋 Copy widget code'}</span>
-                    </button>
-                  </div>
+                {/* Phone Deployment Note */}
+                <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/25 flex items-center space-x-3 text-xs text-[#0F3D3E]">
+                  <span className="text-lg shrink-0">📞</span>
+                  <p className="leading-relaxed">
+                    <strong>Phone deployment — Coming Soon.</strong> Your assistant currently works through its shareable web link.
+                  </p>
                 </div>
               </div>
 
@@ -447,24 +402,6 @@ export default function DeployPage() {
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-900 border border-teal-300 shrink-0">
                       Device-local link
-                    </span>
-                  </div>
-
-                  {/* Item 3: Embed Widget */}
-                  <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-gray-400 font-bold text-base">•</span>
-                      <div>
-                        <p className="text-xs font-bold text-[#0F3D3E]">
-                          Website Embed Widget
-                        </p>
-                        <p className="text-[11px] text-gray-600">
-                          Snippet placeholder generated with active agent ID. Not connected to CDN script yet.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-300 shrink-0">
-                      Not connected yet
                     </span>
                   </div>
                 </div>

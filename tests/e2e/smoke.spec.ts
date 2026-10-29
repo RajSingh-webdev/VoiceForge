@@ -568,9 +568,9 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     expect(remainingParkingFaq).toBeUndefined();
   });
 
-  // g. /deploy: shows sample agent ID, SampleDataBadge, share link, clearly labelled sample snippet;
+  // g. /deploy: shows sample agent ID, SampleDataBadge, share link, and phone deployment note;
   // navigating to /agent/[id] shows public agent page, and invalid ID shows "Agent not found".
-  test('g. /deploy: sample agent ID, SampleDataBadge, snippet, and public agent routing', async ({ page }) => {
+  test('g. /deploy: sample agent ID, SampleDataBadge, share link, and public agent routing', async ({ page }) => {
     await setupMockRoutes(page);
 
     await page.goto('/deploy');
@@ -600,9 +600,10 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     const shareLink = page.locator('a[href*="/agent/agent_sample_dental_123"]');
     await expect(shareLink).toBeVisible();
 
-    // 4. Verify clearly labelled sample snippet
-    const snippetCard = page.locator('pre');
-    await expect(snippetCard).toContainText('Sample snippet. The real widget code will use your ElevenLabs agent ID once connected.');
+    // 4. Verify phone deployment note & simple buttons
+    await expect(page.locator('text=Phone deployment — Coming Soon')).toBeVisible();
+    await expect(page.locator('button:has-text("Copy Link")')).toBeVisible();
+    await expect(page.locator('a:has-text("Open Assistant")')).toBeVisible();
 
     // 5. Navigate to /agent/agent_sample_dental_123 -> public agent page
     await page.goto('/agent/agent_sample_dental_123');
