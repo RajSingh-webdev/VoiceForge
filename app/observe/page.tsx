@@ -448,6 +448,15 @@ export default function ObservePage() {
               Review conversation outcomes, customer inquiries, AI performance, and apply one-click fixes.
             </p>
           </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => fetchConversations(isSampleData ? 'real' : 'sample')}
+              className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm"
+            >
+              {isSampleData ? 'Switch to Live Calls' : 'Switch to Demo Calls (Apply Fix)'}
+            </button>
+          </div>
         </div>
 
         {/* Status Note */}

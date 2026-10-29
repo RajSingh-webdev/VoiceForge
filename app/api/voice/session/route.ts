@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSignedUrl, getAgent } from '@/lib/elevenlabs';
+import { getSignedUrl, getAgent, isRealVoiceEnabled } from '@/lib/elevenlabs';
 
 export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
-  const isRealVoice = process.env.ELEVENLABS_REAL_VOICE === 'true';
+  const isRealVoice = isRealVoiceEnabled();
   const handMadeAgentId = (process.env.ELEVENLABS_AGENT_ID || '').trim();
 
   const requestedAgentId = (
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const isRealVoice = process.env.ELEVENLABS_REAL_VOICE === 'true';
+  const isRealVoice = isRealVoiceEnabled();
 
   let body: any = {};
   try {

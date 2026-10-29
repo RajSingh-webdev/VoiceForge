@@ -6,9 +6,35 @@ function ensureServerSide() {
   }
 }
 
+export function isRealElevenLabsEnabled(): boolean {
+  if (process.env.USE_MOCK_ELEVENLABS === 'true') {
+    return false;
+  }
+  if (process.env.ELEVENLABS_REAL_AGENTS === 'true') {
+    return true;
+  }
+  return (
+    process.env.USE_MOCK_ELEVENLABS === 'false' &&
+    Boolean(process.env.ELEVENLABS_API_KEY?.trim())
+  );
+}
+
+export function isRealVoiceEnabled(): boolean {
+  if (process.env.USE_MOCK_ELEVENLABS === 'true') {
+    return false;
+  }
+  if (process.env.ELEVENLABS_REAL_VOICE === 'true') {
+    return true;
+  }
+  return (
+    process.env.USE_MOCK_ELEVENLABS === 'false' &&
+    Boolean(process.env.ELEVENLABS_API_KEY?.trim())
+  );
+}
+
 function checkMockMode() {
   ensureServerSide();
-  const isMock = process.env.USE_MOCK_ELEVENLABS === 'true';
+  const isMock = !isRealElevenLabsEnabled();
   if (!isMock) {
     throw new Error('Real ElevenLabs calls are not connected yet');
   }
@@ -575,7 +601,7 @@ const mockAgentStore = new Map<
 
 export async function createAgent(config: any): Promise<any> {
   ensureServerSide();
-  const isRealAgents = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isRealAgents = isRealElevenLabsEnabled();
 
   if (!isRealAgents) {
     // Keep existing mock behaviour
@@ -688,9 +714,7 @@ export async function getAgent(agentId: string): Promise<any> {
     throw new Error('Agent ID is required.');
   }
 
-  const isReal =
-    process.env.ELEVENLABS_REAL_AGENTS === 'true' ||
-    process.env.ELEVENLABS_REAL_VOICE === 'true';
+  const isReal = isRealElevenLabsEnabled() || isRealVoiceEnabled();
 
   if (!isReal) {
     const mockData = mockAgentStore.get(cleanId);
@@ -767,7 +791,7 @@ export async function updateAgent(agentId: string, config: any): Promise<any> {
   }
 
   const mapped = mapConfigToElevenLabsPayload(config);
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
 
   if (!isReal) {
     checkMockMode();
@@ -859,7 +883,7 @@ export async function updateAgent(agentId: string, config: any): Promise<any> {
 export async function getSignedUrl(agentIdOverride?: string): Promise<{ signedUrl: string }> {
   ensureServerSide();
 
-  const isRealVoice = process.env.ELEVENLABS_REAL_VOICE === 'true';
+  const isRealVoice = isRealVoiceEnabled();
 
   if (!isRealVoice) {
     // Mock mode
@@ -925,7 +949,7 @@ export async function getSignedUrl(agentIdOverride?: string): Promise<{ signedUr
 
 export async function listVoices(): Promise<VoiceItem[]> {
   ensureServerSide();
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
 
   if (!isReal) {
     checkMockMode();
@@ -1113,7 +1137,7 @@ export async function listConversations(options?: {
   source?: 'real' | 'sample';
 }): Promise<{ conversations: Conversation[]; isSample: boolean; totalReal: number }> {
   ensureServerSide();
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
 
   if (!isReal || options?.source === 'sample') {
     return {
@@ -1213,7 +1237,7 @@ export async function getConversation(conversationId: string): Promise<Conversat
     return { ...sample, isSample: true };
   }
 
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
   if (!isReal) {
     throw new Error(`Conversation "${cleanId}" not found.`);
   }
@@ -1270,7 +1294,7 @@ export async function uploadKnowledgeBaseFile(
   mimeType: string
 ): Promise<KnowledgeBaseDoc> {
   ensureServerSide();
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
 
   if (!isReal) {
     return {
@@ -1324,7 +1348,7 @@ export async function uploadKnowledgeBaseFile(
 
 export async function deleteKnowledgeBaseDocument(documentId: string): Promise<boolean> {
   ensureServerSide();
-  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  const isReal = isRealElevenLabsEnabled();
   if (!isReal) return true;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -1358,9 +1382,7 @@ export async function transcribeAudio(
   mimeType: string
 ): Promise<{ text: string; language_code?: string }> {
   ensureServerSide();
-  const isReal =
-    process.env.ELEVENLABS_REAL_AGENTS === 'true' ||
-    process.env.ELEVENLABS_REAL_VOICE === 'true';
+  const isReal = isRealElevenLabsEnabled() || isRealVoiceEnabled();
 
   if (!isReal) {
     return {
