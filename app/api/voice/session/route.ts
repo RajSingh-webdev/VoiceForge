@@ -93,10 +93,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const safeAgentPrefix = requestedAgentId.slice(0, 16);
+    console.log(`[Voice Session] Validating agent "${safeAgentPrefix}..." in ElevenLabs workspace`);
     // Requirement 5: Verify the id exists in our ElevenLabs workspace with getAgent before creating a session, and refuse anything else.
     await getAgent(requestedAgentId);
 
     const { signedUrl } = await getSignedUrl(requestedAgentId);
+    console.log(`[Voice Session] Signed session URL obtained successfully for "${safeAgentPrefix}..." (realVoice: true)`);
 
     return NextResponse.json({
       signedUrl,
@@ -104,6 +107,7 @@ export async function POST(req: NextRequest) {
       activeAgentId: requestedAgentId,
     });
   } catch (err: any) {
+    console.error(`[Voice Session Error] Failed for agent "${requestedAgentId.slice(0, 16)}...":`, err?.message);
     const msg: string = (err?.message || '').toLowerCase();
 
     if (msg.includes('missing environment variable')) {

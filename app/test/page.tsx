@@ -122,23 +122,29 @@ function TestConversationInner() {
   }, []);
 
   const conversation = useConversation({
-    onConnect: () => {
+    onConnect: ({ conversationId }: any) => {
       setHasConnectedOnce(true);
       setSessionError(null);
       setIsStarting(false);
-      addEvent('Connected', 'Established real-time audio session with ElevenLabs agent');
+      addEvent('Connected', `Established real-time audio session with ElevenLabs agent (ID: ${conversationId || 'live'})`);
     },
-    onDisconnect: (details) => {
+    onDisconnect: (details: any) => {
       setIsStarting(false);
       const reason =
         details && typeof details === 'object' && 'reason' in details
           ? String((details as any).reason)
+          : typeof details === 'string'
+          ? details
           : 'Ended by caller/agent';
       addEvent('Disconnected', reason);
+      if (!hasConnectedOnce && reason && reason !== 'Ended by caller/agent' && !reason.includes('normal')) {
+        setSessionError(`Connection closed before establishing audio: ${reason}`);
+      }
     },
     onError: (err: any) => {
       setIsStarting(false);
       const message = typeof err === 'string' ? err : err?.message || 'Voice session error';
+      console.error('[VoiceForge Live Voice Error]:', message);
       if (message.toLowerCase().includes('quota') || message.toLowerCase().includes('credit')) {
         setSessionError('ElevenLabs quota limit reached or insufficient account credits.');
       } else if (
@@ -150,6 +156,16 @@ function TestConversationInner() {
         setSessionError(message);
       }
       addEvent('Error', message);
+    },
+    onStatusChange: ({ status }: any) => {
+      addEvent('Status Change', `Agent status: ${status}`);
+      if (status === 'connected') {
+        setIsStarting(false);
+        setHasConnectedOnce(true);
+        setSessionError(null);
+      } else if (status === 'disconnected') {
+        setIsStarting(false);
+      }
     },
     onMessage: (payload) => {
       const time = new Date().toLocaleTimeString([], {
@@ -202,21 +218,26 @@ function TestConversationInner() {
     },
   });
 
-  // End session when leaving page
+  const conversationRef = useRef(conversation);
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
+
+  // End session ONLY when unmounting component, preventing premature disconnect on reactive status updates
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
-        conversation.endSession();
+        conversationRef.current?.endSession();
       } catch {}
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       try {
-        conversation.endSession();
+        conversationRef.current?.endSession();
       } catch {}
     };
-  }, [conversation]);
+  }, []); // Empty dependency array ensures cleanup only runs on actual unmount
 
   // Scroll transcript to bottom on new message
   useEffect(() => {
@@ -337,6 +358,7 @@ function TestConversationInner() {
     try {
       await conversation.startSession({
         signedUrl,
+        connectionType: 'websocket',
       });
     } catch (startErr: any) {
       setIsStarting(false);
@@ -350,11 +372,17 @@ function TestConversationInner() {
   const isConnecting = conversation.status === 'connecting' || isStarting;
   const isSpeaking = conversation.isSpeaking;
 
+  const effectiveError =
+    sessionError ||
+    (conversation.status === 'error'
+      ? (conversation as any).message || 'Voice session error'
+      : null);
+
   // Determine current status line text
   let statusText = 'Ready to connect';
   let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300';
 
-  if (sessionError) {
+  if (effectiveError) {
     statusText = 'Error';
     statusBadgeClass = 'bg-red-100 text-red-900 border-red-300 font-bold';
   } else if (isConnecting) {
@@ -477,7 +505,7 @@ function TestConversationInner() {
           )}
 
           {/* Clear Error Messages with actionable guidance */}
-          {sessionError && (
+          {effectiveError && (
             <div
               role="alert"
               className="mt-4 max-w-lg w-full p-4 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs font-medium text-left flex items-start space-x-3 shadow-sm"
@@ -485,7 +513,7 @@ function TestConversationInner() {
               <span className="text-lg shrink-0">⚠️</span>
               <div>
                 <p className="font-bold text-red-950">Conversation Notice</p>
-                <p className="mt-0.5 leading-relaxed">{sessionError}</p>
+                <p className="mt-0.5 leading-relaxed">{effectiveError}</p>
               </div>
             </div>
           )}
@@ -690,6 +718,27 @@ function TestConversationInner() {
 }
 
 export default function TestPage() {
+  const [isRealVoice, setIsRealVoice] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/voice/session')
+      .then((r) => r.json())
+      .then((d) => {
+        if (isMounted) {
+          setIsRealVoice(d.realVoice === true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsRealVoice(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className="w-full max-w-4xl mx-auto text-left py-6 px-4 sm:px-6">
       {/* Header */}
@@ -700,7 +749,18 @@ export default function TestPage() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
                 Live Voice Test
               </h1>
-              <SampleDataBadge />
+              {isRealVoice === false ? (
+                <SampleDataBadge />
+              ) : isRealVoice === true ? (
+                <span
+                  id="live-voice-badge"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-sm"
+                  title="Connected to ElevenLabs conversational AI audio service."
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                  Live ElevenLabs Voice
+                </span>
+              ) : null}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
               Real-time conversational voice test powered by the official ElevenLabs React SDK.
