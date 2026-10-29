@@ -207,6 +207,8 @@ function TestConversationInner() {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Custom Tool';
       if (toolName === 'language_detection') {
         addEvent('Language Detected', 'Caller switched language — adapting voice preset & native accent');
+      } else if (toolName === 'transfer_to_number') {
+        addEvent('Live Call Transfer', 'Assistant transferring caller to human staff member...');
       } else {
         addEvent('Tool Call Requested', `Agent requested tool: ${toolName}`);
       }
@@ -215,6 +217,8 @@ function TestConversationInner() {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Custom Tool';
       if (toolName === 'language_detection') {
         addEvent('Voice Switched', 'Switched voice & pronunciation model to match caller language');
+      } else if (toolName === 'transfer_to_number') {
+        addEvent('Transfer Complete', 'Call transfer to staff initiated');
       } else {
         addEvent('Tool Response', `Received tool result for: ${toolName}`);
       }
@@ -251,12 +255,15 @@ function TestConversationInner() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Resolve active agent ID: only use handMadeAgentId if draftConfig is Smile Dental, preventing cross-assistant overwrite
+  // Resolve active agent ID
   const isDentalDraft = draftConfig?.name ? isMatchingAgentName(draftConfig.name, 'Smile Dental') : false;
+  const isSparkDraft = draftConfig?.name ? isMatchingAgentName(draftConfig.name, 'Spark Digital') : false;
+  const isHandmadeMatch = isDentalDraft || isSparkDraft;
+
   const activeAgentId =
     selectedAgentSource === 'deployed'
-      ? (deployedAgentId || (isDentalDraft ? handMadeAgentId : ''))
-      : (isDentalDraft ? handMadeAgentId : deployedAgentId);
+      ? (deployedAgentId || (isHandmadeMatch ? handMadeAgentId : ''))
+      : (isHandmadeMatch ? handMadeAgentId : deployedAgentId);
 
   // Compute whether Hindi is the primary opening language
   const isHindiPrimary = Boolean(
@@ -379,15 +386,15 @@ function TestConversationInner() {
       return;
     }
 
-    // Synchronize latest configuration with live ElevenLabs agent before connecting ONLY if identities match
+    // Synchronize latest configuration with live ElevenLabs agent before connecting
     if (draftConfig && agentIdToUse) {
-      const isDentalAgent = isDentalDraft && agentIdToUse === handMadeAgentId;
+      const isHandmadeAgent = isHandmadeMatch && agentIdToUse === handMadeAgentId;
       const isDeployedMatch = deployedAgentId === agentIdToUse;
-      if (isDentalAgent || isDeployedMatch) {
+      if (isHandmadeAgent || isDeployedMatch || !deployedAgentId) {
         try {
           addEvent(
             'Syncing Live Agent',
-            `Applying latest settings (${isHindiPrimary ? 'Hindi / Ritu Rathore' : 'English / Rachel'}) to ElevenLabs agent...`
+            `Applying latest settings (${isHindiPrimary ? 'Hindi / Ritu Rathore' : 'English / Rachel'}, 20s timeout, call transfer) to ElevenLabs agent...`
           );
           const updateRes = await fetch('/api/agents/update', {
             method: 'POST',
@@ -403,6 +410,8 @@ function TestConversationInner() {
               'Agent Synchronized',
               `Confirmed on ElevenLabs: voice "${updateData.voiceId}" (${updateData.primaryLanguage === 'hi' ? 'Hindi primary' : 'English primary'})`
             );
+          } else {
+            console.warn('[Test] Auto-sync notice:', updateData.error);
           }
         } catch (syncErr: any) {
           console.warn('[Test] Auto-sync non-fatal warning:', syncErr);

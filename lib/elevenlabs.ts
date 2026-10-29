@@ -161,13 +161,16 @@ export function buildAgentSystemPrompt(config: AgentConfig): string {
 - Use ONLY the verified business facts given above.
 - NEVER invent prices, hours, services, or clinic policies.
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
-- Escalation & Human Hand-off: If the caller asks to speak to a person, mentions pain, or reports an emergency: verbally inform them that you are connecting them to a team member and provide the direct staff contact (${config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210'}).
+- Escalation & Human Hand-off: If the caller asks to speak to a person, human staff, manager, or reports an emergency:
+  * Immediately execute the transfer_to_number tool to connect the caller directly to human staff (${config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210'}).
+  * Do NOT just recite or read out the phone number over TTS. You MUST call the transfer_to_number tool to initiate the live call transfer.
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
 - Bilingual Language & Accent Alignment: You are natively bilingual in English and Hindi.
-  * When the caller speaks in English: respond strictly in fluent, natural English with an authentic English accent.
-  * When the caller speaks in Hindi or Hinglish, or switches mid-conversation: switch immediately to speaking in natural Hindi with an authentic Indian Hindi accent.
-  * When the caller switches back to English: switch back immediately to speaking in natural English.
-  * Maintain clean accent alignment at all times: never speak Hindi in a foreign/English accent, and never speak English in an unnatural accent. Match the caller's language seamlessly on every turn.
+  * You have the language_detection system tool enabled.
+  * When the caller speaks in English: immediately call the language_detection tool with {"language": "en"} and respond strictly in fluent, natural English with an authentic English accent.
+  * When the caller speaks in Hindi or Hinglish, or switches mid-conversation: immediately call the language_detection tool with {"language": "hi"} and respond in natural Hindi with an authentic Indian Hindi accent.
+  * When the caller switches back to English: immediately call the language_detection tool with {"language": "en"} and respond in natural English.
+  * Always trigger language_detection immediately whenever the caller's language changes, so the voice preset and accent switch instantly. Never speak Hindi in an English accent or English in an unnatural accent.
 - Concluding the Call & Hanging Up: When the caller says goodbye, indicates they are finished (e.g. "that's all", "no more questions", "thank you, bye", "धन्यवाद", "अलविदा"), or the conversation has reached a natural conclusion: warmly wish them well and immediately execute the end_call tool to hang up. Do not linger or repeatedly ask if they are still there once the conversation has concluded.`);
 
   return sections.join('\n\n');
@@ -603,12 +606,44 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     };
   }
 
+  const rawStaffPhone = (
+    config.transferPhoneNumber ||
+    config.knowledge?.contact ||
+    '+91 98765 43210'
+  )
+    .replace(/[^\d+]/g, '')
+    .trim();
+  const validTransferPhone = rawStaffPhone.startsWith('+')
+    ? rawStaffPhone
+    : `+91${rawStaffPhone.replace(/^0+/, '')}`;
+
   const builtInTools: Record<string, any> = {
     end_call: {
       name: 'end_call',
       type: 'system',
       params: {
         system_tool_type: 'end_call',
+      },
+    },
+    transfer_to_number: {
+      name: 'transfer_to_number',
+      type: 'system',
+      description:
+        'Transfer the ongoing call to a live human staff member when caller asks to speak to a person, human, doctor, manager, or reports an emergency.',
+      params: {
+        system_tool_type: 'transfer_to_number',
+        transfers: [
+          {
+            transfer_destination: {
+              type: 'phone',
+              phone_number: validTransferPhone || '+919876543210',
+            },
+            condition:
+              'Caller asks to speak with a person, human staff, doctor, manager, or reports an emergency.',
+            description: 'Transfer to front desk human staff',
+            client_message: 'Connecting you to our team right now, please stay on the line.',
+          },
+        ],
       },
     },
   };
@@ -618,6 +653,8 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     builtInTools.language_detection = {
       name: 'language_detection',
       type: 'system',
+      description:
+        'Automatically switch conversation language when caller speaks in English or Hindi / Hinglish. Call immediately with language "en" when caller speaks English, or "hi" when caller speaks Hindi.',
       params: {
         system_tool_type: 'language_detection',
         only_at_conversation_start: false,
@@ -629,6 +666,8 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     agent: {
       prompt: {
         prompt: systemPrompt,
+        llm: 'gemini-2.5-flash',
+        temperature: 0,
         built_in_tools: builtInTools,
       },
       first_message: activeFirstMessage,
@@ -641,7 +680,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     asr: asrConfig,
     turn: {
       turn_timeout: 7,
-      silence_end_call_timeout: 10, // Lowest supported ElevenLabs timeout (API requires 10s-7200s)
+      silence_end_call_timeout: 20, // Increased to 20 seconds as requested
     },
   };
 
