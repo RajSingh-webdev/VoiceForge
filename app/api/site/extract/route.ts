@@ -4,6 +4,7 @@ import { callLLM } from '@/lib/llm';
 import { ExtractedFacts, ExtractedPrice, ExtractedFaq } from '@/lib/types';
 
 export const maxDuration = 60;
+export const runtime = 'nodejs';
 
 function cleanJsonText(raw: string): string {
   let cleaned = raw.trim();

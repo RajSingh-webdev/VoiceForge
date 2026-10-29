@@ -640,4 +640,32 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
       expect(json.error).toBeTruthy();
     }
   });
+
+  // i. Write stage: voice selection dropdown allows choosing Sandeep and updates config atomically
+  test('i. Voice selection on Write stage allows choosing Sandeep without reverting to Rachel', async ({ page }) => {
+    await page.goto('/write');
+    await page.evaluate((mockConfig) => {
+      localStorage.setItem('voiceforge:agent', JSON.stringify(mockConfig));
+    }, MOCK_AGENT_CONFIG);
+    await page.reload();
+
+    const voiceSelect = page.locator('#config-voice-select');
+    await expect(voiceSelect).toBeVisible();
+    await voiceSelect.selectOption('qdykssD3wAUvtIw9wG8N');
+
+    // Verify dropdown value is Sandeep
+    await expect(voiceSelect).toHaveValue('qdykssD3wAUvtIw9wG8N');
+
+    // Verify localStorage has updated voiceId and voiceName
+    const savedConfig = await page.evaluate(() => {
+      const raw = localStorage.getItem('voiceforge:agent');
+      return raw ? JSON.parse(raw) : null;
+    });
+    expect(savedConfig.voiceId).toBe('qdykssD3wAUvtIw9wG8N');
+    expect(savedConfig.voiceName).toContain('Sandeep');
+
+    // Reload page to verify persistence
+    await page.reload();
+    await expect(page.locator('#config-voice-select')).toHaveValue('qdykssD3wAUvtIw9wG8N');
+  });
 });

@@ -59,6 +59,14 @@ const TEMPLATES: Template[] = [
 
 const MAX_CHAR_COUNT = 10000;
 
+const WRITE_VOICE_OPTIONS = [
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel (Default)', label: 'Rachel — Warm & Friendly (Recommended)', isHindi: false },
+  { id: 'fTfuemKGBjYqG4ni4gw3', name: 'Ritu Rathore — Natural Indian Hindi (Receptionist)', label: '🇮🇳 Ritu Rathore — Natural Indian Hindi (Receptionist)', isHindi: true },
+  { id: 'qdykssD3wAUvtIw9wG8N', name: 'Sandeep — Natural Indian Hindi', label: '🇮🇳 Sandeep — Natural Indian Hindi', isHindi: true },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah — Professional & Calm', label: 'Sarah — Professional & Calm', isHindi: false },
+  { id: '29vD33N1CtxCmqQRPOHJ', name: 'Drew — Conversational & Clear', label: 'Drew — Conversational & Clear', isHindi: false },
+];
+
 function checkAiDisclosure(text: string): boolean {
   const lower = text.toLowerCase();
   return (
@@ -411,9 +419,12 @@ export default function WritePage() {
   };
 
   // Updaters for generated config fields
+  const updateConfigFields = (updates: Partial<AgentConfig>) => {
+    setConfig((prev) => (prev ? { ...prev, ...updates } : prev));
+  };
+
   const updateConfigField = <K extends keyof AgentConfig>(field: K, value: AgentConfig[K]) => {
-    if (!config) return;
-    setConfig({ ...config, [field]: value });
+    setConfig((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
   // Goals operations
@@ -1219,45 +1230,69 @@ export default function WritePage() {
                     Mid-call auto-switch active
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateConfigField('languages', ['Hindi', 'English']);
-                      updateConfigField('voiceName', 'Ritu Rathore — Natural Indian Hindi (Receptionist)');
-                      updateConfigField('voiceId', 'fTfuemKGBjYqG4ni4gw3');
-                      updateConfigField('voiceIdHindi', 'fTfuemKGBjYqG4ni4gw3');
-                      updateConfigField('voiceNameHindi', 'Ritu Rathore — Natural Indian Hindi (Receptionist)');
-                    }}
-                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
-                      config.languages[0]?.toLowerCase().includes('hindi') || config.voiceId === 'fTfuemKGBjYqG4ni4gw3'
-                        ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
-                    }`}
-                  >
-                    <span>🇮🇳</span>
-                    <span>Hindi Primary</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateConfigField('languages', ['English', 'Hindi']);
-                      updateConfigField('voiceName', 'Rachel (Default)');
-                      updateConfigField('voiceId', '21m00Tcm4TlvDq8ikWAM');
-                    }}
-                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
-                      !config.languages[0]?.toLowerCase().includes('hindi') && config.voiceId !== 'fTfuemKGBjYqG4ni4gw3'
-                        ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
-                    }`}
-                  >
-                    <span>🇬🇧</span>
-                    <span>English Primary</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-[#1F8A84]">
-                  Calls open in the selected language; callers can freely switch mid-call.
-                </p>
+                {(() => {
+                  const isHindiPrimary = Boolean(
+                    config.languages?.[0]?.toLowerCase().includes('hindi') ||
+                    config.voiceId === 'fTfuemKGBjYqG4ni4gw3' ||
+                    config.voiceId === 'qdykssD3wAUvtIw9wG8N' ||
+                    config.voiceName?.toLowerCase().includes('hindi') ||
+                    config.voiceName?.toLowerCase().includes('sandeep') ||
+                    config.voiceName?.toLowerCase().includes('ritu')
+                  );
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isSandeep = config.voiceId === 'qdykssD3wAUvtIw9wG8N' || config.voiceName?.toLowerCase().includes('sandeep');
+                            const chosenVoice = isSandeep
+                              ? WRITE_VOICE_OPTIONS.find((v) => v.id === 'qdykssD3wAUvtIw9wG8N')!
+                              : WRITE_VOICE_OPTIONS.find((v) => v.id === 'fTfuemKGBjYqG4ni4gw3')!;
+
+                            updateConfigFields({
+                              languages: ['Hindi', 'English'],
+                              voiceName: chosenVoice.name,
+                              voiceId: chosenVoice.id,
+                              voiceIdHindi: chosenVoice.id,
+                              voiceNameHindi: chosenVoice.name,
+                            });
+                          }}
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                            isHindiPrimary
+                              ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                          }`}
+                        >
+                          <span>🇮🇳</span>
+                          <span>Hindi Primary</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateConfigFields({
+                              languages: ['English', 'Hindi'],
+                              voiceName: 'Rachel (Default)',
+                              voiceId: '21m00Tcm4TlvDq8ikWAM',
+                            });
+                          }}
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                            !isHindiPrimary
+                              ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                          }`}
+                        >
+                          <span>🇬🇧</span>
+                          <span>English Primary</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-[#1F8A84]">
+                        Calls open in the selected language; callers can freely switch mid-call.
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Voice Selection & Recommendation */}
@@ -1270,35 +1305,39 @@ export default function WritePage() {
                 </label>
                 <select
                   id="config-voice-select"
-                  value={config.voiceName || 'Rachel (Default)'}
+                  value={
+                    config.voiceId ||
+                    WRITE_VOICE_OPTIONS.find((v) =>
+                      config.voiceName ? config.voiceName.toLowerCase().includes(v.name.split(' ')[0].toLowerCase()) : false
+                    )?.id ||
+                    '21m00Tcm4TlvDq8ikWAM'
+                  }
                   onChange={(e) => {
-                    const val = e.target.value;
-                    const voiceMap: Record<string, string> = {
-                      'Rachel (Default)': '21m00Tcm4TlvDq8ikWAM',
-                      'Ritu Rathore — Natural Indian Hindi (Receptionist)': 'fTfuemKGBjYqG4ni4gw3',
-                      'Sandeep — Natural Indian Hindi': 'qdykssD3wAUvtIw9wG8N',
-                      'Sarah — Professional & Calm': 'EXAVITQu4vr4xnSDxMaL',
-                      'Drew — Conversational & Clear': '29vD33N1CtxCmqQRPOHJ',
-                    };
-                    updateConfigField('voiceName', val);
-                    if (voiceMap[val]) {
-                      updateConfigField('voiceId', voiceMap[val]);
-                    }
-                    if (val.includes('Hindi') || val.includes('Ritu') || val.includes('Sandeep')) {
-                      updateConfigField('languages', ['Hindi', 'English']);
-                      updateConfigField('voiceIdHindi', voiceMap[val]);
-                      updateConfigField('voiceNameHindi', val);
-                    } else if (val.includes('Rachel')) {
-                      updateConfigField('languages', ['English', 'Hindi']);
+                    const chosenId = e.target.value;
+                    const chosen = WRITE_VOICE_OPTIONS.find((v) => v.id === chosenId) || WRITE_VOICE_OPTIONS[0];
+                    if (chosen.isHindi) {
+                      updateConfigFields({
+                        voiceId: chosen.id,
+                        voiceName: chosen.name,
+                        voiceIdHindi: chosen.id,
+                        voiceNameHindi: chosen.name,
+                        languages: ['Hindi', 'English'],
+                      });
+                    } else {
+                      updateConfigFields({
+                        voiceId: chosen.id,
+                        voiceName: chosen.name,
+                        languages: ['English', 'Hindi'],
+                      });
                     }
                   }}
-                  className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none mb-1.5"
+                  className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-hidden mb-1.5"
                 >
-                  <option value="Rachel (Default)">Rachel — Warm &amp; Friendly (Recommended)</option>
-                  <option value="Ritu Rathore — Natural Indian Hindi (Receptionist)">🇮🇳 Ritu Rathore — Natural Indian Hindi (Receptionist)</option>
-                  <option value="Sandeep — Natural Indian Hindi">🇮🇳 Sandeep — Natural Indian Hindi</option>
-                  <option value="Sarah — Professional &amp; Calm">Sarah — Professional &amp; Calm</option>
-                  <option value="Drew — Conversational &amp; Clear">Drew — Conversational &amp; Clear</option>
+                  {WRITE_VOICE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
                 <p className="text-[11px] text-gray-600">
                   <span className="font-semibold text-[#0F3D3E]">Recommended Style:</span> {config.voiceSuggestion || 'Warm, friendly, clear front-desk tone'}
