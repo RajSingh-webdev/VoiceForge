@@ -493,13 +493,6 @@ function TestConversationInner() {
     statusBadgeClass = 'bg-gray-100 text-gray-800 border-gray-300 font-semibold';
   }
 
-  // Response time calculation
-  const latestLatency = latencies.length > 0 ? `${latencies[latencies.length - 1]} ms` : null;
-  const avgLatency =
-    latencies.length > 0
-      ? `${Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)} ms`
-      : null;
-
   return (
     <div className="space-y-6">
       {/* Plain Language Voice & Language Banner */}
@@ -672,109 +665,7 @@ function TestConversationInner() {
             </div>
           )}
         </div>
-
-        {/* Metrics Bar: Response Time & Turn Delays */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto pt-4 border-t border-gray-100">
-          <div className="p-3 bg-[#E8F1EF]/40 rounded-xl border border-[#1F8A84]/20 text-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] block mb-0.5">
-              Latest Turn Delay
-            </span>
-            <span className="text-sm font-extrabold text-[#0F3D3E]">
-              {latestLatency || 'Awaiting turn'}
-            </span>
-          </div>
-
-          <div className="p-3 bg-[#E8F1EF]/40 rounded-xl border border-[#1F8A84]/20 text-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] block mb-0.5">
-              Average Turn Delay
-            </span>
-            <span className="text-sm font-extrabold text-[#0F3D3E]">
-              {avgLatency || 'Awaiting turns'}
-            </span>
-          </div>
-        </div>
       </div>
-
-      {/* Advanced Agent Selection (Kept accessible but out of the primary flow) */}
-      <details className="bg-white p-4 rounded-2xl border border-gray-200 text-left text-xs group">
-        <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
-          <span className="flex items-center space-x-2">
-            <span>⚙️</span>
-            <span>Advanced: Choose Agent Target</span>
-            <span className="text-gray-400 font-normal">
-              ({selectedAgentSource === 'handmade' ? 'Using hand-made agent' : 'Using agent built on Write page'})
-            </span>
-          </span>
-          <span className="text-xs text-[#1F8A84] font-medium">Configure</span>
-        </summary>
-        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Option 1: Hand-made agent */}
-            <button
-              type="button"
-              id="select-handmade"
-              onClick={() => setSelectedAgentSource('handmade')}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                selectedAgentSource === 'handmade'
-                  ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
-                  : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-[#0F3D3E]">Hand-made agent</span>
-                {selectedAgentSource === 'handmade' && (
-                  <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-600 font-mono break-all">
-                {handMadeAgentId ? handMadeAgentId : 'Configured in ELEVENLABS_AGENT_ID'}
-              </p>
-            </button>
-
-            {/* Option 2: Agent built on the Write page */}
-            <button
-              type="button"
-              id="select-deployed"
-              onClick={() => {
-                setSelectedAgentSource('deployed');
-              }}
-              disabled={!deployedAgentId && !draftConfig}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                !deployedAgentId && !draftConfig
-                  ? 'opacity-60 cursor-not-allowed border-gray-200 bg-gray-50'
-                  : selectedAgentSource === 'deployed'
-                  ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
-                  : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-[#0F3D3E]">
-                  Agent built on the Write page
-                </span>
-                {selectedAgentSource === 'deployed' && (
-                  <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-600 font-mono break-all">
-                {deployedAgentId
-                  ? deployedAgentId
-                  : draftConfig
-                  ? `Ready from Write draft (${draftConfig.name || 'Assistant'})`
-                  : 'No draft assistant found on Write page'}
-              </p>
-            </button>
-          </div>
-          {activeAgentId && (
-            <div className="text-[11px] text-gray-500 font-mono">
-              Active Agent Target ID: {activeAgentId}
-            </div>
-          )}
-        </div>
-      </details>
 
       {/* Real-time Streaming Transcript */}
       <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[460px]">
