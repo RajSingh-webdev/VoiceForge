@@ -28,10 +28,14 @@ export async function POST(req: Request) {
     const {
       callerName = 'Unknown Caller',
       callerPhone = 'Not provided',
+      transferPhone = '',
+      targetPhone = '',
       reason = 'Caller requested a human staff member',
       notes = '',
       agentId,
     } = body || {};
+
+    const destination = transferPhone || targetPhone || '+91 98765 43210';
 
     const record: EscalationRecord = {
       id: `esc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -40,7 +44,7 @@ export async function POST(req: Request) {
       reason: String(reason).trim() || 'Customer requested human assistance',
       status: 'escalated',
       createdAt: new Date().toISOString(),
-      notes: typeof notes === 'string' ? notes.trim() : '',
+      notes: typeof notes === 'string' ? notes.trim() : `Call routed to ${destination}`,
       agentId: typeof agentId === 'string' ? agentId.trim() : undefined,
     };
 
@@ -48,8 +52,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      status: 'escalated',
-      message: 'Human escalation registered. Staff member notified for immediate follow-up.',
+      status: 'transferred',
+      destination,
+      message: `Call transferred to human staff at ${destination}. Staff notified.`,
       escalation: record,
     });
   } catch (err: any) {

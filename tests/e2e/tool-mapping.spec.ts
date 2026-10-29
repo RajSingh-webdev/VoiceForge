@@ -55,17 +55,19 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     expect(catalogTool).toBeUndefined();
     expect(feeTool).toBeUndefined();
 
-    // 2. Legacy Human Transfer Router should be normalized to working Human Escalation Policy
+    // 2. Legacy Human Transfer Router should be normalized to Transfer Call to Person (Human Escalation)
     const legacyRouter = normalized.tools.find((t) => t.name === 'Human Transfer Router');
     expect(legacyRouter).toBeUndefined();
 
-    const escalationTool = normalized.tools.find((t) => t.name === 'Human Escalation Policy');
+    const escalationTool = normalized.tools.find(
+      (t) => t.name.includes('Transfer Call to Person') || t.name.includes('Human Escalation')
+    );
     expect(escalationTool).toBeDefined();
     expect(escalationTool?.status).toContain('Active');
 
     // 3. Human escalation should be present in guardrails as a behavioural instruction
     const hasEscalationGuardrail = normalized.guardrails.some(
-      (g) => g.toLowerCase().includes('escalat') || g.toLowerCase().includes('human')
+      (g) => g.toLowerCase().includes('escalat') || g.toLowerCase().includes('human') || g.toLowerCase().includes('transfer')
     );
     expect(hasEscalationGuardrail).toBe(true);
 
@@ -113,28 +115,31 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     const toolsSection = page.locator('text=Tools & Integrations');
     await expect(toolsSection).toBeVisible();
 
-    // Verify guidance cards for Knowledge Base and Human Escalation Policy
-    await expect(page.locator('text=Course & Fee Information')).toBeVisible();
-
     // Course Catalog Lookup and Fee Structure Database should NOT appear in tool list
     await expect(page.locator('input[value="Course Catalog Lookup"]')).toHaveCount(0);
     await expect(page.locator('input[value="Fee Structure Database"]')).toHaveCount(0);
     await expect(page.locator('input[value="Human Transfer Router"]')).toHaveCount(0);
 
-    // Human Escalation Policy should appear as working tool with Test button
-    const escalationInput = page.locator('input[value="Human Escalation Policy"]');
+    // Transfer Call to Person (Human Escalation) should appear as working tool with phone input and Call button
+    const escalationInput = page.locator('input[value="Transfer Call to Person"]');
     await expect(escalationInput).toBeVisible();
-    await expect(page.locator('text=Active — In-Call Escalation & Staff Callback')).toBeVisible();
+    await expect(page.locator('text=Active — Live Call Transfer')).toBeVisible();
 
-    const testEscalationBtn = page.locator('button:has-text("⚡ Test Escalation")');
-    await expect(testEscalationBtn).toBeVisible();
-    await testEscalationBtn.click();
-    await expect(page.locator('text=Escalation verified')).toBeVisible();
+    const staffPhoneInput = page.locator('#staff-transfer-phone');
+    await expect(staffPhoneInput).toBeVisible();
 
-    // Appointment Booking Webhook should appear with "Not connected" badge
+    const testTransferBtn = page.locator('button:has-text("Call to Person")');
+    await expect(testTransferBtn).toBeVisible();
+    await testTransferBtn.click();
+    await expect(page.locator('text=Call transferred to staff')).toBeVisible();
+
+    // Appointment Booking Webhook should appear with Test Booking button
     const bookingInput = page.locator('input[value="Appointment Booking Webhook"]');
     await expect(bookingInput).toBeVisible();
-    await expect(page.locator('text=Not connected — requires public HTTPS webhook URL')).toBeVisible();
+    const testBookingBtn = page.locator('button:has-text("Test Booking")');
+    await expect(testBookingBtn).toBeVisible();
+    await testBookingBtn.click();
+    await expect(page.locator('text=Booking confirmed')).toBeVisible();
 
     // Test "Create New Assistant" button
     page.once('dialog', async (dialog) => {

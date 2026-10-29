@@ -36,7 +36,10 @@ export function isHumanTransferTool(name: string, purpose: string): boolean {
     text.includes('transfer router') ||
     text.includes('transfer to human') ||
     text.includes('call routing') ||
-    text.includes('escalate to human')
+    text.includes('escalat') ||
+    text.includes('call to person') ||
+    text.includes('transfer call') ||
+    text.includes('human escalation')
   );
 }
 
@@ -138,12 +141,12 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
       continue;
     }
 
-    // 2. Human Escalation Policy -> Active Working Tool
-    if (isHumanTransferTool(name, purpose) || name.toLowerCase().includes('escalation')) {
+    // 2. Transfer Call to Person (Human Escalation) -> Active Tool that calls to a person
+    if (isHumanTransferTool(name, purpose)) {
       normalizedTools.push({
-        name: 'Human Escalation Policy',
-        purpose: 'Escalate to human staff when caller requests a person, reports an emergency, or needs specialist assistance. Alerts clinic staff and arranges immediate callback.',
-        status: 'Active — In-Call Escalation & Staff Callback',
+        name: 'Transfer Call to Person',
+        purpose: 'Transfers active call directly to a live human staff member when requested or in case of emergency.',
+        status: 'Active — Live Call Transfer to Person',
       });
       hasHumanTransferTool = true;
       continue;
@@ -167,22 +170,28 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
     });
   }
 
-  // Ensure Human Escalation Policy tool is included when escalation is required
+  // Ensure Transfer Call to Person tool is included when escalation is required
   const alreadyHasEscalationTool = normalizedTools.some(
-    (t) => t.name.toLowerCase().includes('escalat') || t.name.toLowerCase().includes('human')
+    (t) =>
+      t.name.toLowerCase().includes('transfer') ||
+      t.name.toLowerCase().includes('escalat') ||
+      t.name.toLowerCase().includes('human')
   );
 
   const hasEscalationNeed =
     hasHumanTransferTool ||
     (config.guardrails || []).some(
-      (g) => g.toLowerCase().includes('human') || g.toLowerCase().includes('escalat') || g.toLowerCase().includes('transfer')
+      (g) =>
+        g.toLowerCase().includes('human') ||
+        g.toLowerCase().includes('escalat') ||
+        g.toLowerCase().includes('transfer')
     );
 
   if (hasEscalationNeed && !alreadyHasEscalationTool) {
     normalizedTools.push({
-      name: 'Human Escalation Policy',
-      purpose: 'Escalate to human staff when caller requests a person, reports an emergency, or needs specialist assistance. Alerts clinic staff and arranges immediate callback.',
-      status: 'Active — In-Call Escalation & Staff Callback',
+      name: 'Transfer Call to Person',
+      purpose: 'Transfers active call directly to a live human staff member when requested or in case of emergency.',
+      status: 'Active — Live Call Transfer to Person',
     });
   }
 

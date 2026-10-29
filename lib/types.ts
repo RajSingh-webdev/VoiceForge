@@ -66,6 +66,7 @@ export interface AgentConfig {
   tools: ProposedTool[];
   knowledge?: ExtractedFacts;
   knowledgeBaseDocuments?: KnowledgeBaseDoc[];
+  transferPhoneNumber?: string;
 }
 
 export type ConversationOutcome = 'Booked' | 'Resolved' | 'Flagged' | 'Transferred to human';

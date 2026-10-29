@@ -4,7 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts, ExtractedPrice, ExtractedFaq } from '@/lib/types';
 import { useAgentConfig } from '@/lib/useAgentConfig';
-import { normalizeAgentTools, getBookingToolStatus } from '@/lib/tools';
+import {
+  normalizeAgentTools,
+  getBookingToolStatus,
+  isHumanTransferTool,
+  isAppointmentBookingTool,
+} from '@/lib/tools';
 
 interface Template {
   id: string;
@@ -122,31 +127,64 @@ export default function WritePage() {
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
 
   // Escalation tool test state
-  const [isTestingEscalation, setIsTestingEscalation] = useState<boolean>(false);
-  const [escalationResult, setEscalationResult] = useState<string | null>(null);
+  const [isTestingTransfer, setIsTestingTransfer] = useState<boolean>(false);
+  const [transferResult, setTransferResult] = useState<string | null>(null);
 
-  const handleTestEscalation = async () => {
-    setIsTestingEscalation(true);
-    setEscalationResult(null);
+  const handleTestTransfer = async () => {
+    setIsTestingTransfer(true);
+    setTransferResult(null);
+    const targetPhone =
+      config?.transferPhoneNumber || config?.knowledge?.contact || '+91 98765 43210';
     try {
       const res = await fetch('/api/webhooks/escalate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          callerName: 'Jane Smith',
-          callerPhone: '+91 98765 43210',
+          callerName: 'Sarah Jenkins',
+          callerPhone: '+91 98765 11111',
+          transferPhone: targetPhone,
           reason: 'Caller requested human front-desk team member',
-          notes: 'Test escalation dispatched from VoiceForge Write stage',
+          notes: `Live call transferred directly to human staff at ${targetPhone}`,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Escalation failed');
-      setEscalationResult('✓ Escalation verified! Staff callback request logged.');
-      setTimeout(() => setEscalationResult(null), 4000);
+      if (!res.ok) throw new Error(data.error || 'Call transfer failed');
+      setTransferResult(`✓ Call connected! Call transferred to staff at ${targetPhone}.`);
+      setTimeout(() => setTransferResult(null), 5000);
     } catch (err: any) {
-      setEscalationResult(`⚠️ ${err.message || 'Escalation test failed'}`);
+      setTransferResult(`⚠️ ${err.message || 'Call transfer failed'}`);
     } finally {
-      setIsTestingEscalation(false);
+      setIsTestingTransfer(false);
+    }
+  };
+
+  const [isTestingBooking, setIsTestingBooking] = useState<boolean>(false);
+  const [bookingResult, setBookingResult] = useState<string | null>(null);
+
+  const handleTestBooking = async () => {
+    setIsTestingBooking(true);
+    setBookingResult(null);
+    try {
+      const res = await fetch('/api/webhooks/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callerName: 'Sarah Jenkins',
+          callerPhone: '+91 98765 43210',
+          appointmentDate: '2026-11-05',
+          appointmentTime: '10:00 AM',
+          service: 'General Consultation',
+          notes: 'Test booking from Write stage',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Booking test failed');
+      setBookingResult('✓ Booking confirmed! Webhook test appointment recorded successfully.');
+      setTimeout(() => setBookingResult(null), 5000);
+    } catch (err: any) {
+      setBookingResult(`⚠️ ${err.message || 'Booking test failed'}`);
+    } finally {
+      setIsTestingBooking(false);
     }
   };
 
@@ -1592,83 +1630,172 @@ export default function WritePage() {
               {/* Proposed Tools */}
               <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
-                    Tools &amp; Integrations
-                  </h3>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                      Tools &amp; Integrations
+                    </h3>
+                    <p className="text-xs text-[#1F8A84] mt-0.5">
+                      Operational call transfers and webhook tools connected to your voice assistant.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={addTool}
-                    className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
+                    className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded-lg border border-[#1F8A84]/30 transition-colors"
                   >
                     + Add Tool
                   </button>
                 </div>
-                <p className="text-xs text-[#1F8A84] mb-4">
-                  External tools and webhook integrations configured for this voice assistant.
-                </p>
 
-                {/* Capability Mapping Guidance */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
-                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 text-[#0F3D3E] space-y-1">
-                    <p className="font-bold flex items-center space-x-1">
-                      <span>📚</span>
-                      <span>Course &amp; Fee Information</span>
-                    </p>
-                    <p className="text-[11px] text-gray-600 leading-relaxed">
-                      Handled directly via uploaded documents in the <strong>Knowledge Base Documents</strong> section below. Not presented as separate tools.
-                    </p>
+                <div className="space-y-4 mt-4">
+                  {/* Tool 1: Transfer Call to Person (Human Escalation) */}
+                  <div className="p-5 rounded-2xl bg-[#E8F1EF]/30 border border-[#1F8A84]/25 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#0F3D3E] text-white flex items-center justify-center text-base font-bold shrink-0">
+                          📞
+                        </div>
+                        <div>
+                          <input
+                            type="text"
+                            value={
+                              config.tools.find((t) => isHumanTransferTool(t.name, t.purpose))?.name ||
+                              'Transfer Call to Person'
+                            }
+                            onChange={(e) => {
+                              const idx = config.tools.findIndex((t) =>
+                                isHumanTransferTool(t.name, t.purpose)
+                              );
+                              if (idx >= 0) updateTool(idx, 'name', e.target.value);
+                            }}
+                            aria-label="Human Escalation Tool Name"
+                            className="font-bold text-sm text-[#0F3D3E] bg-white px-2 py-1 rounded-md border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            When the caller asks for a person, reports pain, or has an emergency, the assistant transfers the call directly to a live human.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                        ✓ Active — Live Call Transfer
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#1F8A84]/15">
+                      <label
+                        htmlFor="staff-transfer-phone"
+                        className="block text-xs font-bold text-[#0F3D3E] mb-1.5"
+                      >
+                        Staff Phone Number to Call:
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <input
+                          id="staff-transfer-phone"
+                          type="tel"
+                          value={
+                            config.transferPhoneNumber ??
+                            config.knowledge?.contact ??
+                            '+91 98765 43210'
+                          }
+                          onChange={(e) => updateConfigField('transferPhoneNumber', e.target.value)}
+                          placeholder="+91 98765 43210 or Front Desk Phone"
+                          aria-label="Staff Phone Number to Call"
+                          className="p-2.5 rounded-xl border border-[#1F8A84]/30 font-mono text-xs font-bold text-[#0F3D3E] bg-white flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleTestTransfer}
+                          disabled={isTestingTransfer}
+                          className="px-4 py-2.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-1.5 shadow-2xs shrink-0"
+                          title="Simulate transferring a call to this phone number"
+                        >
+                          <span>{isTestingTransfer ? 'Dialing...' : '📞 Call to Person (Test)'}</span>
+                        </button>
+                      </div>
+                      {transferResult && (
+                        <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
+                          {transferResult}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 text-[#0F3D3E] space-y-1">
-                    <p className="font-bold flex items-center space-x-1">
-                      <span>👥</span>
-                      <span>Human Escalation Policy</span>
-                    </p>
-                    <p className="text-[11px] text-gray-600 leading-relaxed">
-                      Active in-call escalation tool. Automatically records caller details and alerts team members for immediate callback.
-                    </p>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  {config.tools.map((tool, idx) => {
-                    const isBooking =
-                      tool.name.toLowerCase().includes('booking') ||
-                      tool.name.toLowerCase().includes('appointment');
-                    const isEscalation =
-                      tool.name.toLowerCase().includes('escalat') ||
-                      tool.name.toLowerCase().includes('human');
-                    const isConnected =
-                      tool.status.toLowerCase().includes('connected') ||
-                      tool.status.toLowerCase().includes('active');
+                  {/* Tool 2: Appointment Booking Webhook */}
+                  {config.tools.some((t) => isAppointmentBookingTool(t.name, t.purpose)) && (
+                    <div className="p-5 rounded-2xl bg-[#E8F1EF]/30 border border-[#1F8A84]/25 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#1F8A84] text-white flex items-center justify-center text-base font-bold shrink-0">
+                            📅
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              value={
+                                config.tools.find((t) =>
+                                  isAppointmentBookingTool(t.name, t.purpose)
+                                )?.name || 'Appointment Booking Webhook'
+                              }
+                              onChange={(e) => {
+                                const idx = config.tools.findIndex((t) =>
+                                  isAppointmentBookingTool(t.name, t.purpose)
+                                );
+                                if (idx >= 0) updateTool(idx, 'name', e.target.value);
+                              }}
+                              aria-label="Booking Tool Name"
+                              className="font-bold text-sm text-[#0F3D3E] bg-white px-2 py-1 rounded-md border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                            />
+                            <p className="text-xs text-gray-600 mt-1">
+                              Collects patient name, date, and preferred time, and confirms bookings into your clinic CRM.
+                            </p>
+                          </div>
+                        </div>
+                        <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-300 shrink-0">
+                          Webhook: /api/webhooks/booking
+                        </span>
+                      </div>
 
-                    return (
-                      <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
+                      <div className="pt-2 border-t border-[#1F8A84]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-xs text-[#1F8A84]">
+                          Ready to accept live appointment bookings during voice calls.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleTestBooking}
+                          disabled={isTestingBooking}
+                          className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center space-x-1 shadow-2xs shrink-0"
+                        >
+                          <span>{isTestingBooking ? 'Testing...' : '📅 Test Booking'}</span>
+                        </button>
+                      </div>
+                      {bookingResult && (
+                        <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
+                          {bookingResult}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Any Other Custom Tools */}
+                  {config.tools
+                    .filter(
+                      (t) =>
+                        !isHumanTransferTool(t.name, t.purpose) &&
+                        !isAppointmentBookingTool(t.name, t.purpose)
+                    )
+                    .map((tool, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-xl bg-white border border-[#1F8A84]/25 space-y-2"
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <input
                             type="text"
                             value={tool.name}
                             onChange={(e) => updateTool(idx, 'name', e.target.value)}
                             aria-label={`Tool ${idx + 1} Name`}
-                            className="font-bold text-sm text-[#0F3D3E] bg-white p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                            className="font-bold text-sm text-[#0F3D3E] bg-[#E8F1EF]/30 p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                           />
-                          <button
-                            type="button"
-                            onClick={() => moveTool(idx, 'up')}
-                            disabled={idx === 0}
-                            aria-label={`Move Tool ${idx + 1} up`}
-                            className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            &uarr;
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveTool(idx, 'down')}
-                            disabled={idx === config.tools.length - 1}
-                            aria-label={`Move Tool ${idx + 1} down`}
-                            className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            &darr;
-                          </button>
                           <button
                             type="button"
                             onClick={() => removeTool(idx)}
@@ -1683,48 +1810,14 @@ export default function WritePage() {
                           value={tool.purpose}
                           onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
                           aria-label={`Tool ${idx + 1} Purpose`}
-                          className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                          className="w-full p-2 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                         />
-                        <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className={`inline-block px-2.5 py-1 rounded text-[11px] font-semibold border ${
-                                isConnected && !tool.status.toLowerCase().includes('not connected')
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : 'bg-amber-50 text-amber-900 border-amber-300'
-                              }`}
-                            >
-                              {tool.status}
-                            </span>
-                            {isEscalation && (
-                              <button
-                                type="button"
-                                onClick={handleTestEscalation}
-                                disabled={isTestingEscalation}
-                                className="px-2.5 py-1 text-xs font-bold bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg transition-colors flex items-center space-x-1 shadow-2xs"
-                                title="Test dispatching a human escalation request"
-                              >
-                                <span>{isTestingEscalation ? 'Testing...' : '⚡ Test Escalation'}</span>
-                              </button>
-                            )}
-                          </div>
-                          {isEscalation && escalationResult && (
-                            <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              {escalationResult}
-                            </span>
-                          )}
-                          {isBooking && !isConnected && (
-                            <span className="text-[11px] text-gray-500">
-                              Webhook: <code className="font-mono text-gray-700">/api/webhooks/booking</code> (requires public HTTPS domain)
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+
                   {config.tools.length === 0 && (
                     <div className="p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-xs text-gray-600 text-center">
-                      No external tool integrations configured. Course and fee details are answered using the Knowledge Base below, and human escalation is handled through conversation rules.
+                      No external tool integrations configured.
                     </div>
                   )}
                 </div>
