@@ -162,6 +162,7 @@ export function buildAgentSystemPrompt(config: AgentConfig): string {
 - NEVER invent prices, hours, services, or clinic policies.
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
 - Transfer to a human staff member immediately if the caller asks to speak to a person, mentions pain, or reports an emergency (explain verbally that you are routing them to a human team member).
+- Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
 - Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).`);
 
   return sections.join('\n\n');
@@ -514,6 +515,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       overrides: {
         agent: {
           first_message: welcomeMessageHindi,
+          language: 'hi',
         },
         tts: {
           model_id: 'eleven_flash_v2_5',
@@ -573,6 +575,49 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
 
   if (hasHindi && Object.keys(languagePresets).length > 0) {
     conversationConfig.language_presets = languagePresets;
+  }
+
+  // Connect real appointment booking tool if a public HTTPS URL is configured
+  const appBaseUrl = (
+    process.env.APP_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+  ).replace(/\/$/, '');
+
+  if (appBaseUrl && appBaseUrl.startsWith('https://')) {
+    const webhookSecret = process.env.BOOKING_WEBHOOK_SECRET?.trim();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (webhookSecret) {
+      headers['x-webhook-secret'] = webhookSecret;
+    }
+
+    conversationConfig.agent.prompt.tools = [
+      {
+        type: 'webhook',
+        name: 'book_appointment',
+        description:
+          'Record and confirm a patient appointment with the clinic. Call this tool when the patient provides their full name, phone number, preferred appointment date, and time.',
+        api_schema: {
+          url: `${appBaseUrl}/api/webhooks/booking`,
+          method: 'POST',
+          request_body_schema: {
+            type: 'object',
+            properties: {
+              callerName: { type: 'string', description: 'Full name of the caller/patient' },
+              callerPhone: { type: 'string', description: 'Contact phone number' },
+              appointmentDate: { type: 'string', description: 'Requested appointment date (YYYY-MM-DD)' },
+              appointmentTime: { type: 'string', description: 'Requested appointment time slot' },
+              service: { type: 'string', description: 'Requested service or treatment' },
+              notes: { type: 'string', description: 'Any symptoms or additional notes' },
+            },
+            required: ['callerName', 'callerPhone', 'appointmentDate', 'appointmentTime'],
+          },
+          request_headers: headers,
+        },
+      },
+    ];
   }
 
   return {

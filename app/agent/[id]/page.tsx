@@ -226,27 +226,33 @@ export default function PublicAgentPage() {
           const data = await res.json();
           if (data?.found && data?.agent) {
             const rawAgent = data.agent;
-            const convConfig = rawAgent.conversationConfig || {};
-            const agentPrompt = convConfig.agent?.prompt?.prompt || '';
-            const welcomeMsg = convConfig.agent?.first_message || `Hello! I am ${rawAgent.name}.`;
-            const primaryLang = convConfig.agent?.language === 'en' ? 'English' : convConfig.agent?.language || 'English';
-            const languages = [primaryLang];
-            if (convConfig.language_presets?.hi) {
-              languages.push('Hindi');
-            }
+            let reconstructedConfig: AgentConfig;
 
-            const reconstructedConfig: AgentConfig = {
-              name: rawAgent.name || 'Voice Assistant',
-              persona: agentPrompt.slice(0, 150) || `AI Assistant for ${rawAgent.name}`,
-              goals: ['Assist callers with verified business information', 'Answer inquiries and schedule appointments'],
-              flowSteps: [],
-              welcomeMessage: welcomeMsg,
-              languages,
-              voiceSuggestion: 'Professional AI Voice',
-              voiceId: convConfig.tts?.voice_id,
-              guardrails: ['Disclose AI identity', 'Route emergencies to human staff'],
-              tools: [],
-            };
+            if (rawAgent.config && isValidAgentConfig(rawAgent.config)) {
+              reconstructedConfig = rawAgent.config;
+            } else {
+              const convConfig = rawAgent.conversationConfig || {};
+              const agentPrompt = convConfig.agent?.prompt?.prompt || '';
+              const welcomeMsg = convConfig.agent?.first_message || `Hello! I am ${rawAgent.name}.`;
+              const primaryLang = convConfig.agent?.language === 'en' ? 'English' : convConfig.agent?.language || 'English';
+              const languages = [primaryLang];
+              if (convConfig.language_presets?.hi) {
+                languages.push('Hindi');
+              }
+
+              reconstructedConfig = {
+                name: rawAgent.name || 'Voice Assistant',
+                persona: agentPrompt.slice(0, 150) || `AI Assistant for ${rawAgent.name}`,
+                goals: ['Assist callers with verified business information', 'Answer inquiries and schedule appointments'],
+                flowSteps: [],
+                welcomeMessage: welcomeMsg,
+                languages,
+                voiceSuggestion: 'Professional AI Voice',
+                voiceId: convConfig.tts?.voice_id,
+                guardrails: ['Disclose AI identity', 'Route emergencies to human staff'],
+                tools: [],
+              };
+            }
 
             const newDeployment: AgentDeployment = {
               agentId: rawAgent.agentId || agentId,

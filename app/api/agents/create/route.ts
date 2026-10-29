@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAgent } from '@/lib/elevenlabs';
 import { isValidAgentConfig } from '@/lib/types';
+import { isSupabaseConfigured, saveAgentToDb } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   let body: any;
@@ -31,12 +32,31 @@ export async function POST(req: NextRequest) {
 
   try {
     const deployment = await createAgent(config);
+
+    let cloudPersisted = false;
+    if (isSupabaseConfigured()) {
+      const dbRes = await saveAgentToDb({
+        agent_id: deployment.agentId,
+        name: config.name,
+        persona: config.persona,
+        welcome_message: config.welcomeMessage,
+        welcome_message_hindi: config.welcomeMessageHindi,
+        languages: config.languages,
+        voice_id: config.voiceId,
+        config,
+        is_published: true,
+        is_sample: deployment.isSample === true,
+      });
+      cloudPersisted = dbRes.success;
+    }
+
     return NextResponse.json({
       agentId: deployment.agentId,
       createdAt: deployment.createdAt,
       isSample: deployment.isSample,
       name: deployment.name,
       status: deployment.status,
+      cloudPersisted,
     });
   } catch (err: any) {
     const msg: string = (err?.message || '').toLowerCase();

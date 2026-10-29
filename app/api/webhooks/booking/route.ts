@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { BookingRecord } from '@/lib/types';
+import { isSupabaseConfigured, saveBookingToDb, getBookingsFromDb } from '@/lib/supabase';
+import { updateCallerMemory } from '@/lib/callerMemory';
 
-// In-memory store for deduplication and persistence fallback
+// In-memory store for fast deduplication and local persistence fallback
 const bookingStore = new Map<string, BookingRecord>();
 
 export async function POST(req: Request) {
@@ -29,7 +31,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const { callerName, callerPhone, appointmentDate, appointmentTime, service, notes } = body;
+    const {
+      callerName,
+      callerPhone,
+      appointmentDate,
+      appointmentTime,
+      service,
+      notes,
+      agentId,
+    } = body;
 
     // Validate required fields
     if (!callerName || typeof callerName !== 'string' || !callerName.trim()) {
@@ -42,6 +52,15 @@ export async function POST(req: Request) {
     if (!callerPhone || typeof callerPhone !== 'string' || !callerPhone.trim()) {
       return NextResponse.json(
         { error: 'Missing required field: callerPhone' },
+        { status: 400 }
+      );
+    }
+
+    // Basic format validation
+    const cleanPhone = callerPhone.replace(/[\s\-\(\)\.]/g, '');
+    if (cleanPhone.length < 7 || !/^\+?[0-9]+$/.test(cleanPhone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format. Please provide a valid phone number.' },
         { status: 400 }
       );
     }
@@ -61,7 +80,7 @@ export async function POST(req: Request) {
     }
 
     // Deduplication check
-    const dedupKey = `${callerPhone.trim()}_${appointmentDate.trim()}_${appointmentTime.trim()}`;
+    const dedupKey = `${cleanPhone}_${appointmentDate.trim()}_${appointmentTime.trim()}`;
     if (bookingStore.has(dedupKey)) {
       const existing = bookingStore.get(dedupKey)!;
       return NextResponse.json({
@@ -75,7 +94,7 @@ export async function POST(req: Request) {
     const newBooking: BookingRecord = {
       id: `bk_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       callerName: callerName.trim(),
-      callerPhone: callerPhone.trim(),
+      callerPhone: cleanPhone,
       appointmentDate: appointmentDate.trim(),
       appointmentTime: appointmentTime.trim(),
       service: service && typeof service === 'string' ? service.trim() : 'General Consultation',
@@ -86,11 +105,25 @@ export async function POST(req: Request) {
 
     bookingStore.set(dedupKey, newBooking);
 
+    // Persist to Supabase if configured
+    let cloudPersisted = false;
+    if (isSupabaseConfigured()) {
+      const dbResult = await saveBookingToDb(newBooking, agentId);
+      cloudPersisted = dbResult.success;
+
+      // Also update privacy-preserving caller memory
+      await updateCallerMemory(agentId || 'default', cleanPhone, {
+        displayName: callerName.trim(),
+        note: `Booked ${newBooking.service} on ${newBooking.appointmentDate} at ${newBooking.appointmentTime}`,
+      }).catch(() => null);
+    }
+
     return NextResponse.json({
       success: true,
       status: 'confirmed',
       message: 'Appointment successfully confirmed.',
       booking: newBooking,
+      cloudPersisted,
     });
   } catch (err: any) {
     return NextResponse.json(
@@ -100,11 +133,37 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  const bookings = Array.from(bookingStore.values());
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const agentId = searchParams.get('agentId') || undefined;
+
+  let bookings = Array.from(bookingStore.values());
+  let fromDb = false;
+
+  if (isSupabaseConfigured()) {
+    const dbRes = await getBookingsFromDb(agentId);
+    if (!dbRes.error && dbRes.bookings.length > 0) {
+      bookings = dbRes.bookings.map((b) => ({
+        id: b.id,
+        callerName: b.caller_name,
+        callerPhone: b.caller_phone,
+        appointmentDate: b.appointment_date,
+        appointmentTime: b.appointment_time,
+        service: b.service,
+        status: b.status,
+        createdAt: b.created_at,
+        notes: b.notes,
+      }));
+      fromDb = true;
+    }
+  }
+
   return NextResponse.json({
     total: bookings.length,
     bookings,
-    secretConfigured: !!(process.env.BOOKING_WEBHOOK_SECRET && process.env.BOOKING_WEBHOOK_SECRET.trim()),
+    fromDb,
+    secretConfigured: !!(
+      process.env.BOOKING_WEBHOOK_SECRET && process.env.BOOKING_WEBHOOK_SECRET.trim()
+    ),
   });
 }

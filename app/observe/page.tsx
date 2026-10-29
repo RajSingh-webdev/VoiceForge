@@ -15,6 +15,7 @@ import {
 
 const FIXES_STORAGE_KEY = 'voiceforge:fixes';
 const FIX_HISTORY_STORAGE_KEY = 'voiceforge:fix_history';
+const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
 
 function formatDuration(sec: number): string {
   const mins = Math.floor(sec / 60);
@@ -90,6 +91,9 @@ export default function ObservePage() {
   const [fixHistory, setFixHistory] = useState<FixHistoryItem[]>([]);
   const [lastAppliedFix, setLastAppliedFix] = useState<FixHistoryItem | null>(null);
   const [undoSuccessMessage, setUndoSuccessMessage] = useState<string | null>(null);
+  const [deployedAgentId, setDeployedAgentId] = useState<string | null>(null);
+  const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
+  const [isSyncingLiveAgent, setIsSyncingLiveAgent] = useState<boolean>(false);
 
   // Load applied fixes and history from localStorage
   useEffect(() => {
@@ -112,6 +116,18 @@ export default function ObservePage() {
           const parsed = JSON.parse(storedHistory);
           if (Array.isArray(parsed)) {
             setFixHistory(parsed);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+
+      try {
+        const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
+        if (storedDeployment) {
+          const parsed = JSON.parse(storedDeployment);
+          if (parsed.agentId) {
+            setDeployedAgentId(parsed.agentId);
           }
         }
       } catch {
@@ -316,6 +332,38 @@ export default function ObservePage() {
     // Save updated config using shared hook
     setConfig(updatedConfig);
 
+    // If deployed to ElevenLabs, synchronize and verify live agent via read-back
+    if (deployedAgentId) {
+      setIsSyncingLiveAgent(true);
+      fetch(`/api/agents/${encodeURIComponent(deployedAgentId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: updatedConfig }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.verified) {
+            setSyncStatusMessage(
+              `Fix applied to knowledge base and verified live with ElevenLabs agent "${deployedAgentId}" (read-back confirmed).`
+            );
+          } else {
+            setSyncStatusMessage(
+              `Fix saved to knowledge base. Live agent notice: ${data.error || 'Pending live synchronization.'}`
+            );
+          }
+        })
+        .catch((err) => {
+          setSyncStatusMessage(
+            `Fix saved locally. Live synchronization notice: ${err.message || 'Offline fallback'}`
+          );
+        })
+        .finally(() => {
+          setIsSyncingLiveAgent(false);
+        });
+    } else {
+      setSyncStatusMessage('Fix applied to assistant knowledge base.');
+    }
+
     // Mark call as "Fix applied" in localStorage
     const nextFixes = Array.from(new Set([...appliedFixes, selectedCall.id]));
     setAppliedFixes(nextFixes);
@@ -369,6 +417,15 @@ export default function ObservePage() {
     // Restore previous configuration
     setConfig(lastFix.previousConfig);
     setFixHistory(remainingHistory);
+
+    // Revert live agent as well if deployed
+    if (deployedAgentId) {
+      fetch(`/api/agents/${encodeURIComponent(deployedAgentId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: lastFix.previousConfig }),
+      }).catch(() => null);
+    }
 
     if (typeof window !== 'undefined') {
       try {
@@ -476,6 +533,26 @@ export default function ObservePage() {
           </div>
         )}
       </header>
+
+      {/* Live sync / Fix confirmation banner */}
+      {syncStatusMessage && (
+        <div
+          role="status"
+          className="mb-6 p-4 rounded-xl bg-teal-50 border border-teal-300 text-[#0F3D3E] flex items-center justify-between"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-teal-700 font-bold">ℹ️</span>
+            <span className="text-xs sm:text-sm font-semibold">{syncStatusMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncStatusMessage(null)}
+            className="text-teal-700 hover:text-teal-900 text-xs font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Undo confirmation banner */}
       {undoSuccessMessage && (
