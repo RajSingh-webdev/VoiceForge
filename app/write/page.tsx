@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts, ExtractedPrice, ExtractedFaq } from '@/lib/types';
 import { useAgentConfig } from '@/lib/useAgentConfig';
+import { normalizeAgentTools, getBookingToolStatus } from '@/lib/tools';
 
 interface Template {
   id: string;
@@ -332,7 +333,7 @@ export default function WritePage() {
   const handleStartOver = () => {
     if (typeof window !== 'undefined') {
       const confirmed = window.confirm(
-        'Are you sure you want to start over? This will clear your current draft assistant configuration.'
+        'Are you sure you want to create a new assistant? This will clear your current draft configuration.'
       );
       if (confirmed) {
         clearConfig();
@@ -342,9 +343,23 @@ export default function WritePage() {
         setWebsiteUrl('');
         setExtractedFacts(null);
         setExtractError(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   };
+
+  // Auto-normalize tools and capability mapping on load
+  React.useEffect(() => {
+    if (!isLoaded || !config) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalized = normalizeAgentTools(config, origin);
+    const hasChanged =
+      JSON.stringify(normalized.tools) !== JSON.stringify(config.tools) ||
+      normalized.guardrails.length !== config.guardrails.length;
+    if (hasChanged) {
+      setConfig(normalized);
+    }
+  }, [isLoaded, config, setConfig]);
 
   // Updaters for extracted facts panel
   const updateFactField = <K extends keyof ExtractedFacts>(field: K, val: ExtractedFacts[K]) => {
@@ -1055,41 +1070,31 @@ export default function WritePage() {
           className="border-t-2 border-[#1F8A84]/20 pt-8 mt-10"
           aria-labelledby="draft-config-heading"
         >
-          {/* Draft Notice Banner with Start Over button */}
-          <div className="mb-6 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <p className="text-xs uppercase font-extrabold text-[#0F3D3E] tracking-wider">
-                Draft configuration saved
-              </p>
-              <p className="text-sm text-[#0F3D3E] mt-0.5">
-                Automatically saved to local storage. No voice agent has been published yet.
-              </p>
-            </div>
-            <div className="flex items-center space-x-3 shrink-0">
-              <span className="px-3 py-1 bg-white text-[#0F3D3E] border border-[#1F8A84]/30 rounded-full text-xs font-bold">
-                Saved Locally
-              </span>
-              <button
-                type="button"
-                onClick={handleStartOver}
-                className="px-3 py-1 bg-white text-rose-700 hover:bg-rose-50 border border-rose-300 rounded-full text-xs font-bold transition-colors"
-                title="Clear current agent draft and start fresh"
-              >
-                Start over
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
-                Assistant Setup Summary
-              </h2>
-              <p className="text-xs text-[#1F8A84] mt-0.5">
+              <div className="flex items-center space-x-2.5">
+                <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
+                  Assistant Setup Summary
+                </h2>
+                <span className="text-[11px] font-bold text-[#1F8A84] bg-[#E8F1EF] px-2.5 py-0.5 rounded-full border border-[#1F8A84]/20 shrink-0">
+                  Draft configuration saved
+                </span>
+              </div>
+              <p className="text-xs text-[#1F8A84] mt-1">
                 Review your assistant setup below. Key fields can be edited directly before testing.
               </p>
             </div>
-            <span className="text-xs text-[#1F8A84] font-medium hidden sm:inline">Changes auto-save locally</span>
+            <div className="flex items-center space-x-3 shrink-0">
+              <span className="text-xs text-[#1F8A84] font-medium hidden md:inline">Changes auto-save locally</span>
+              <button
+                type="button"
+                onClick={handleStartOver}
+                className="px-4 py-2 bg-[#E8F1EF] hover:bg-[#0F3D3E] text-[#0F3D3E] hover:text-white border border-[#1F8A84]/30 rounded-xl text-xs font-bold transition-colors flex items-center space-x-1.5 shadow-2xs"
+                title="Start fresh and create a new assistant"
+              >
+                <span>↻ Create New Assistant</span>
+              </button>
+            </div>
           </div>
 
           {/* Clean Setup Summary Card */}
@@ -1565,7 +1570,7 @@ export default function WritePage() {
               <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
-                    Proposed Tools
+                    Tools &amp; Integrations
                   </h3>
                   <button
                     type="button"
@@ -1576,63 +1581,107 @@ export default function WritePage() {
                   </button>
                 </div>
                 <p className="text-xs text-[#1F8A84] mb-4">
-                  Customer-service tools proposed for this assistant. These are drafts only and not connected to live external systems.
+                  External tools and webhook integrations configured for this voice assistant.
                 </p>
 
+                {/* Capability Mapping Guidance */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
+                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 text-[#0F3D3E] space-y-1">
+                    <p className="font-bold flex items-center space-x-1">
+                      <span>📚</span>
+                      <span>Course &amp; Fee Information</span>
+                    </p>
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                      Handled directly via uploaded documents in the <strong>Knowledge Base Documents</strong> section below. Not presented as separate tools.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 text-[#0F3D3E] space-y-1">
+                    <p className="font-bold flex items-center space-x-1">
+                      <span>👥</span>
+                      <span>Human Escalation Policy</span>
+                    </p>
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                      Defined as prompt instructions in <strong>Conversation Flow &amp; Guardrails</strong>. No active telecom transfer integration is connected.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
-                  {config.tools.map((tool, idx) => (
-                    <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <input
-                          type="text"
-                          value={tool.name}
-                          onChange={(e) => updateTool(idx, 'name', e.target.value)}
-                          aria-label={`Tool ${idx + 1} Name`}
-                          className="font-bold text-sm text-[#0F3D3E] bg-white p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                  {config.tools.map((tool, idx) => {
+                    const isBooking =
+                      tool.name.toLowerCase().includes('booking') ||
+                      tool.name.toLowerCase().includes('appointment');
+                    const isConnected =
+                      tool.status.toLowerCase().includes('connected') &&
+                      !tool.status.toLowerCase().includes('not connected');
+
+                    return (
+                      <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            type="text"
+                            value={tool.name}
+                            onChange={(e) => updateTool(idx, 'name', e.target.value)}
+                            aria-label={`Tool ${idx + 1} Name`}
+                            className="font-bold text-sm text-[#0F3D3E] bg-white p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => moveTool(idx, 'up')}
+                            disabled={idx === 0}
+                            aria-label={`Move Tool ${idx + 1} up`}
+                            className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            &uarr;
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveTool(idx, 'down')}
+                            disabled={idx === config.tools.length - 1}
+                            aria-label={`Move Tool ${idx + 1} down`}
+                            className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            &darr;
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeTool(idx)}
+                            aria-label={`Remove Tool ${idx + 1}`}
+                            className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={tool.purpose}
+                          onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
+                          aria-label={`Tool ${idx + 1} Purpose`}
+                          className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                         />
-                        <button
-                          type="button"
-                          onClick={() => moveTool(idx, 'up')}
-                          disabled={idx === 0}
-                          aria-label={`Move Tool ${idx + 1} up`}
-                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          &uarr;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveTool(idx, 'down')}
-                          disabled={idx === config.tools.length - 1}
-                          aria-label={`Move Tool ${idx + 1} down`}
-                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          &darr;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeTool(idx)}
-                          aria-label={`Remove Tool ${idx + 1}`}
-                          className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
-                        >
-                          &times;
-                        </button>
+                        <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded text-[11px] font-semibold border ${
+                              isConnected
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-amber-50 text-amber-900 border-amber-300'
+                            }`}
+                          >
+                            {tool.status}
+                          </span>
+                          {isBooking && !isConnected && (
+                            <span className="text-[11px] text-gray-500">
+                              Webhook: <code className="font-mono text-gray-700">/api/webhooks/booking</code> (requires public HTTPS domain)
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <textarea
-                        rows={2}
-                        value={tool.purpose}
-                        onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
-                        aria-label={`Tool ${idx + 1} Purpose`}
-                        className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                      />
-                      <div className="pt-1">
-                        <span className="inline-block px-2.5 py-1 rounded bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/30 text-[11px] font-semibold">
-                          {tool.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {config.tools.length === 0 && (
-                    <p className="text-xs text-gray-500 italic">No tools proposed. Click &ldquo;+ Add Tool&rdquo; to add one.</p>
+                    <div className="p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-xs text-gray-600 text-center">
+                      No external tool integrations configured. Course and fee details are answered using the Knowledge Base below, and human escalation is handled through conversation rules.
+                    </div>
                   )}
                 </div>
               </div>
@@ -1680,7 +1729,7 @@ export default function WritePage() {
                       Knowledge Base Documents (PDF, TXT, DOCX)
                     </h3>
                     <p className="text-xs text-[#1F8A84]">
-                      Upload clinic manuals, policy documents, or pricing sheets directly to your agent.
+                      Upload course catalogs, fee schedules, clinic manuals, or policy documents directly to your agent. Course and fee questions are answered from these documents.
                     </p>
                   </div>
                   <label className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer inline-flex items-center space-x-1.5 shrink-0">

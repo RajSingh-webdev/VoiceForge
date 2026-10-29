@@ -1,0 +1,135 @@
+import { test, expect } from '@playwright/test';
+import { normalizeAgentTools, getBookingToolStatus } from '@/lib/tools';
+import { AgentConfig } from '@/lib/types';
+
+test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
+  const sampleConfigWithProposedTools: AgentConfig = {
+    name: 'Apex Institute Admissions Assistant',
+    persona: 'Helpful and professional academic counselor',
+    goals: [
+      'Provide admissions counseling and course details',
+      'Explain semester tuition fees and payment options',
+    ],
+    flowSteps: [
+      { title: 'Greeting', instruction: 'Introduce as AI admissions counselor for Apex Institute.' },
+      { title: 'Counseling', instruction: 'Answer applicant questions and explain course offerings.' },
+    ],
+    welcomeMessage: 'Hello! I am the AI admissions assistant for Apex Institute. How can I help you today?',
+    welcomeMessageHindi: 'नमस्ते! मैं एपेक्स इंस्टीट्यूट का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?',
+    languages: ['English', 'Hindi'],
+    voiceSuggestion: 'Warm and articulate tone',
+    guardrails: [
+      'Disclose AI identity at the start of call',
+      'Never invent unaccredited courses or unapproved discounts',
+    ],
+    tools: [
+      {
+        name: 'Course Catalog Lookup',
+        purpose: 'Query course catalog database for syllabus details',
+        status: 'Proposed — integration not connected',
+      },
+      {
+        name: 'Fee Structure Database',
+        purpose: 'Lookup tuition fees and semester costs',
+        status: 'Proposed — integration not connected',
+      },
+      {
+        name: 'Appointment Scheduler',
+        purpose: 'Schedule campus tour visits',
+        status: 'Proposed — integration not connected',
+      },
+      {
+        name: 'Human Transfer Router',
+        purpose: 'Transfer caller to dean or admissions officer',
+        status: 'Proposed — integration not connected',
+      },
+    ],
+  };
+
+  test('normalizeAgentTools strips catalog/fee lookup tools and human transfer router, and normalizes appointment booking', () => {
+    const normalized = normalizeAgentTools(sampleConfigWithProposedTools, 'http://localhost:3000');
+
+    // 1. Course and fee tools should NOT exist as separate tools
+    const catalogTool = normalized.tools.find((t) => t.name.includes('Course Catalog'));
+    const feeTool = normalized.tools.find((t) => t.name.includes('Fee Structure'));
+    expect(catalogTool).toBeUndefined();
+    expect(feeTool).toBeUndefined();
+
+    // 2. Human transfer router tool should NOT exist as a separate tool
+    const humanTransferTool = normalized.tools.find((t) => t.name.includes('Human Transfer'));
+    expect(humanTransferTool).toBeUndefined();
+
+    // 3. Human escalation should be present in guardrails as a behavioural instruction
+    const hasEscalationGuardrail = normalized.guardrails.some(
+      (g) => g.toLowerCase().includes('escalat') || g.toLowerCase().includes('human')
+    );
+    expect(hasEscalationGuardrail).toBe(true);
+
+    // 4. Appointment scheduler should be normalized to Appointment Booking Webhook
+    const bookingTool = normalized.tools.find((t) => t.name.includes('Appointment Booking Webhook'));
+    expect(bookingTool).toBeDefined();
+
+    // 5. On localhost, status must accurately reflect that booking is not connected
+    expect(bookingTool?.status).toContain('Not connected');
+    expect(bookingTool?.status).toContain('localhost');
+  });
+
+  test('getBookingToolStatus correctly distinguishes localhost from public HTTPS domains', () => {
+    const localStatus = getBookingToolStatus('http://localhost:3000');
+    expect(localStatus.isConnected).toBe(false);
+    expect(localStatus.status).toContain('Not connected');
+
+    const httpsStatus = getBookingToolStatus('https://voiceforge.example.com');
+    expect(httpsStatus.isConnected).toBe(true);
+    expect(httpsStatus.status).toContain('Connected');
+  });
+
+  test('Write page loads normalized tools, displays capability guidance, and clears on Create New Assistant', async ({ page }) => {
+    // Seed draft in localStorage with the 4 proposed tools
+    await page.goto('/write');
+    await page.evaluate((cfg) => {
+      window.localStorage.setItem('voiceforge:agent', JSON.stringify(cfg));
+    }, sampleConfigWithProposedTools);
+
+    await page.reload();
+
+    // Verify Assistant Setup Summary is visible
+    const setupHeading = page.locator('#draft-config-heading');
+    await expect(setupHeading).toBeVisible();
+
+    // Verify "Create New Assistant" button is displayed
+    const createNewBtn = page.locator('button:has-text("Create New Assistant")');
+    await expect(createNewBtn).toBeVisible();
+
+    // Verify Tools & Integrations section
+    const toolsSection = page.locator('text=Tools & Integrations');
+    await expect(toolsSection).toBeVisible();
+
+    // Verify guidance cards for Knowledge Base and Human Escalation Policy
+    await expect(page.locator('text=Course & Fee Information')).toBeVisible();
+    await expect(page.locator('text=Human Escalation Policy')).toBeVisible();
+
+    // Course Catalog Lookup and Fee Structure Database should NOT appear in tool list
+    await expect(page.locator('input[value="Course Catalog Lookup"]')).toHaveCount(0);
+    await expect(page.locator('input[value="Fee Structure Database"]')).toHaveCount(0);
+    await expect(page.locator('input[value="Human Transfer Router"]')).toHaveCount(0);
+
+    // Appointment Booking Webhook should appear with "Not connected" badge
+    const bookingInput = page.locator('input[value="Appointment Booking Webhook"]');
+    await expect(bookingInput).toBeVisible();
+    await expect(page.locator('text=Not connected — requires public HTTPS webhook URL')).toBeVisible();
+
+    // Test "Create New Assistant" button
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toContain('create a new assistant');
+      await dialog.accept();
+    });
+
+    await createNewBtn.click();
+
+    // Draft should be cleared
+    await expect(setupHeading).not.toBeVisible();
+    const stored = await page.evaluate(() => window.localStorage.getItem('voiceforge:agent'));
+    expect(stored).toBeNull();
+  });
+});

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callLLM } from '@/lib/llm';
 import { AgentConfig, FlowStep, ProposedTool, isValidAgentConfig } from '@/lib/types';
+import { isKnowledgeLookupTool, isHumanTransferTool, isAppointmentBookingTool, getBookingToolStatus } from '@/lib/tools';
 
 export const maxDuration = 60;
 
@@ -100,18 +101,31 @@ function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
 
   if (Array.isArray(data.tools)) {
     const validTools: ProposedTool[] = data.tools
-      .filter(
-        (t: any) =>
-          t &&
-          typeof t === 'object' &&
-          !containsPlatformInternal(t.name || '') &&
-          !containsPlatformInternal(t.purpose || '')
-      )
-      .map((t: any, idx: number) => ({
-        name: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : `Proposed Tool ${idx + 1}`,
-        purpose: typeof t.purpose === 'string' && t.purpose.trim() ? t.purpose.trim() : '',
-        status: 'Proposed — integration not connected',
-      }));
+      .filter((t: any) => {
+        if (!t || typeof t !== 'object') return false;
+        const name = typeof t.name === 'string' ? t.name.trim() : '';
+        const purpose = typeof t.purpose === 'string' ? t.purpose.trim() : '';
+        if (containsPlatformInternal(name) || containsPlatformInternal(purpose)) return false;
+        // Course and fee info belongs to Knowledge Base, not separate tools
+        if (isKnowledgeLookupTool(name, purpose)) return false;
+        // Human transfer is behavioural, not a connected telephone transfer
+        if (isHumanTransferTool(name, purpose)) return false;
+        return true;
+      })
+      .map((t: any, idx: number) => {
+        const name = typeof t.name === 'string' && t.name.trim() ? t.name.trim() : `Proposed Tool ${idx + 1}`;
+        const purpose = typeof t.purpose === 'string' && t.purpose.trim() ? t.purpose.trim() : '';
+        let status = 'Proposed — integration not connected';
+        if (isAppointmentBookingTool(name, purpose)) {
+          const bookingStatus = getBookingToolStatus();
+          status = bookingStatus.status;
+        }
+        return {
+          name,
+          purpose,
+          status,
+        };
+      });
     if (validTools.length > 0) {
       result.tools = validTools;
     }

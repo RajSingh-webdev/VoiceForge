@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callLLM } from '@/lib/llm';
 import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts } from '@/lib/types';
 import { enforceHindiAiDisclosure } from '@/lib/elevenlabs';
+import { normalizeAgentTools } from '@/lib/tools';
 
 export const maxDuration = 60;
 
@@ -130,7 +131,7 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
     guardrails.push("Transfer the conversation to a human whenever requested.");
   }
 
-  const tools: ProposedTool[] = Array.isArray(data.tools)
+  const rawTools: ProposedTool[] = Array.isArray(data.tools)
     ? data.tools
         .filter(
           (t: any) =>
@@ -158,14 +159,15 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
     languages,
     voiceSuggestion,
     guardrails,
-    tools,
+    tools: rawTools,
   };
 
   if (facts) {
     config.knowledge = facts;
   }
 
-  return config;
+  // Normalize tools: course & fee info belongs in Knowledge Base; human handoff is behavioural; booking checks real URL
+  return normalizeAgentTools(config);
 }
 
 export async function POST(req: NextRequest) {
@@ -232,7 +234,11 @@ Strict Requirements:
 2. The welcomeMessage MUST explicitly disclose that the assistant is an AI (e.g., "Hi, I am the AI assistant for...").
 3. The languages array MUST include both "English" and "Hindi".
 4. The flowSteps array must provide clear, ordered steps with "title" and "instruction".
-5. The tools array must contain proposed tools needed for this assistant, each with "name", "purpose", and "status" set to "Proposed — integration not connected".
+5. TOOL RULES & CAPABILITY MAPPING:
+   - Course and Fee information: Do NOT propose separate tools for static knowledge retrieval (such as "Course Catalog Lookup", "Fee Structure Database", "Catalog Lookup", "Price Database", or "FAQ Search"). Factual answers regarding courses, curriculum, fee schedules, services, and pricing are answered directly via the Knowledge Base (documents and verified facts).
+   - Human hand-off: Do NOT create tools for transferring to a person (such as "Human Transfer Router"). Human hand-off must be defined as a behavioural instruction in flowSteps and guardrails (e.g. instructing the assistant verbally to take a message or offer callback), NEVER as an active telephone-transfer integration unless a real telephony PBX transfer mechanism exists.
+   - Appointment booking: If the user requests appointment booking or scheduling, include "Appointment Booking Webhook" (purpose: "Record and confirm appointment bookings via inbound webhook").
+   - Clearly distinguish proposed business capabilities from integrations actually configured: tools must accurately show connection status.
 6. BUSINESS FOCUS & SCOPE:
    - Focus EXCLUSIVELY on customer-facing business capabilities described by the user (for example, answering clinic hours and verified pricing, booking appointments, routing calls to human staff).
    - NEVER invent clinic facts, unverified pricing, medical advice, or government schemes not provided in the description or verified facts.
