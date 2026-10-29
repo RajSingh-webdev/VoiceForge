@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
-import SimulatedCallersPanel from '@/components/SimulatedCallersPanel';
 import { AgentDeployment, AgentConfig } from '@/lib/types';
 
 interface TranscriptItem {
@@ -933,9 +932,6 @@ export default function TestPage() {
       <ConversationProvider>
         <TestConversationInner />
       </ConversationProvider>
-
-      {/* Simulated Callers & Stress Testing */}
-      <SimulatedCallersPanel />
     </div>
   );
 }
