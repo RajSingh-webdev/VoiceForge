@@ -12,6 +12,26 @@ function cleanJsonText(raw: string): string {
   return cleaned;
 }
 
+const FORBIDDEN_PLATFORM_TERMS = [
+  'call analysis',
+  'health check',
+  'ssrf',
+  'api monitoring',
+  'application deployment',
+  'database log',
+  'server maintenance',
+  'backend check',
+  'developer tool',
+  'deployment pipeline',
+  'quota tracking',
+  'latency metric',
+];
+
+function containsPlatformInternal(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  return FORBIDDEN_PLATFORM_TERMS.some((term) => lower.includes(term));
+}
+
 function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('AI output is not a valid JSON object');
@@ -29,7 +49,7 @@ function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
 
   if (Array.isArray(data.goals)) {
     const validGoals = data.goals
-      .filter((g: any) => typeof g === 'string' && g.trim())
+      .filter((g: any) => typeof g === 'string' && g.trim() && !containsPlatformInternal(g))
       .map((g: string) => g.trim());
     if (validGoals.length > 0) {
       result.goals = validGoals;
@@ -38,7 +58,7 @@ function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
 
   if (Array.isArray(data.flowSteps)) {
     const validSteps = data.flowSteps
-      .filter((s: any) => s && typeof s === 'object')
+      .filter((s: any) => s && typeof s === 'object' && !containsPlatformInternal(s.title || ''))
       .map((s: any, idx: number) => ({
         title: typeof s.title === 'string' && s.title.trim() ? s.title.trim() : `Step ${idx + 1}`,
         instruction: typeof s.instruction === 'string' && s.instruction.trim() ? s.instruction.trim() : '',
@@ -62,12 +82,16 @@ function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
   }
 
   if (typeof data.voiceSuggestion === 'string' && data.voiceSuggestion.trim()) {
-    result.voiceSuggestion = data.voiceSuggestion.trim();
+    let suggestion = data.voiceSuggestion.trim();
+    if (suggestion.toLowerCase().includes('scribe')) {
+      suggestion = 'A clear, natural, and friendly conversational tone.';
+    }
+    result.voiceSuggestion = suggestion;
   }
 
   if (Array.isArray(data.guardrails)) {
     const validGuardrails = data.guardrails
-      .filter((g: any) => typeof g === 'string' && g.trim())
+      .filter((g: any) => typeof g === 'string' && g.trim() && !containsPlatformInternal(g))
       .map((g: string) => g.trim());
     if (validGuardrails.length > 0) {
       result.guardrails = validGuardrails;
@@ -76,7 +100,13 @@ function validateAndFilterPartialConfig(data: any): Partial<AgentConfig> {
 
   if (Array.isArray(data.tools)) {
     const validTools: ProposedTool[] = data.tools
-      .filter((t: any) => t && typeof t === 'object')
+      .filter(
+        (t: any) =>
+          t &&
+          typeof t === 'object' &&
+          !containsPlatformInternal(t.name || '') &&
+          !containsPlatformInternal(t.purpose || '')
+      )
       .map((t: any, idx: number) => ({
         name: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : `Proposed Tool ${idx + 1}`,
         purpose: typeof t.purpose === 'string' && t.purpose.trim() ? t.purpose.trim() : '',
@@ -146,7 +176,8 @@ Instructions:
 2. Return ONLY a single raw JSON object containing ONLY the modified fields (a partial AgentConfig). Do NOT return unchanged fields. Do NOT use markdown code blocks (\`\`\`json). Do NOT provide explanations.
 3. If welcomeMessage is modified, it MUST explicitly state that the assistant is an AI.
 4. If languages is modified, ensure natural, recognized language names are used.
-5. Allowed keys in the returned JSON object are ONLY:
+5. Focus strictly on business/customer capabilities. NEVER invent or introduce platform internals (e.g. call analysis, health checks, SSRF, API monitoring, application deployment). Never suggest Scribe as a voice model.
+6. Allowed keys in the returned JSON object are ONLY:
    - "name": string
    - "persona": string
    - "goals": string[]

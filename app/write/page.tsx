@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts, ExtractedPrice, ExtractedFaq } from '@/lib/types';
 import { useAgentConfig } from '@/lib/useAgentConfig';
 
@@ -46,6 +47,13 @@ const TEMPLATES: Template[] = [
     description: 'Handle payment-related enquiries respectfully, explain verified payment information, and direct users to an appropriate human when needed.',
     promptText:
       'Create a respectful billing assistant for accounts receivable. It verifies caller identity securely, explains outstanding balance details, shares verified payment options, and directs callers to a human financial counselor when needed.',
+  },
+  {
+    id: 'rural-helpline',
+    title: 'Rural Community Helpline (Hindi-First)',
+    description: 'Provide verified agricultural center hours and local helpline guidance in clear Hindi and English, with human escalation.',
+    promptText:
+      'Create an accessible, Hindi-first rural community information assistant for the Krishi Seva Kendra (Agricultural Service Center). It warmly introduces itself in Hindi as an AI assistant (नमस्ते! मैं कृषि सेवा केंद्र का AI सहायक हूँ।), shares verified center hours (Monday to Saturday, 9am to 5pm) and contact details, assists callers with soil-testing appointment requests, and immediately connects urgent farming or weather inquiries to a human officer at the center. It never invents government schemes or unverified guidelines.',
   },
 ];
 
@@ -882,7 +890,7 @@ export default function WritePage() {
           </h2>
           <span className="text-xs text-[#1F8A84]">Click to populate description</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {TEMPLATES.map((tmpl) => {
             const isSelected = activeTemplateId === tmpl.id;
             return (
@@ -1061,113 +1069,91 @@ export default function WritePage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-6">
-            <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
-              Assistant Draft Configuration
-            </h2>
-            <span className="text-xs text-[#1F8A84]">Changes auto-save locally</span>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
+                Assistant Setup Summary
+              </h2>
+              <p className="text-xs text-[#1F8A84] mt-0.5">
+                Review your assistant setup below. Key fields can be edited directly before testing.
+              </p>
+            </div>
+            <span className="text-xs text-[#1F8A84] font-medium hidden sm:inline">Changes auto-save locally</span>
           </div>
 
-          <div className="space-y-6">
-            {/* 1. Basic Information */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-[#0F3D3E] mb-4">
-                Basic Information
-              </h3>
+          {/* Clean Setup Summary Card */}
+          <div className="bg-white border-2 border-[#1F8A84]/30 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 mb-8">
+            {/* 1. Assistant Name & Core Capabilities */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label
+                  htmlFor="config-agent-name"
+                  className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-1.5"
+                >
+                  Assistant Name
+                </label>
+                <input
+                  id="config-agent-name"
+                  type="text"
+                  value={config.name}
+                  onChange={(e) => updateConfigField('name', e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#1F8A84]/30 text-sm font-bold text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                  placeholder="e.g. Smile Dental Assistant"
+                />
+              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="config-agent-name" className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
-                    Assistant Name
+              {/* What the assistant helps with */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
+                    What this assistant will help with
                   </label>
-                  <input
-                    id="config-agent-name"
-                    type="text"
-                    value={config.name}
-                    onChange={(e) => updateConfigField('name', e.target.value)}
-                    className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm font-semibold text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                  />
+                  <button
+                    type="button"
+                    onClick={addGoal}
+                    className="text-[11px] font-bold text-[#1F8A84] hover:underline"
+                  >
+                    + Add goal
+                  </button>
                 </div>
-
-                <div>
-                  <label htmlFor="config-agent-persona" className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
-                    Personality & Tone
-                  </label>
-                  <textarea
-                    id="config-agent-persona"
-                    rows={2}
-                    value={config.persona}
-                    onChange={(e) => updateConfigField('persona', e.target.value)}
-                    className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                  />
-                </div>
-
-                {/* Goals - Fully Editable List */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
-                      Core Goals
-                    </label>
-                    <button
-                      type="button"
-                      onClick={addGoal}
-                      className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
-                    >
-                      + Add Goal
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {config.goals.map((goal, idx) => (
-                      <div key={idx} className="flex items-center space-x-2">
-                        <span className="text-xs font-bold text-[#1F8A84] w-5 text-right">{idx + 1}.</span>
-                        <input
-                          type="text"
-                          value={goal}
-                          onChange={(e) => updateGoal(idx, e.target.value)}
-                          aria-label={`Goal ${idx + 1}`}
-                          className="flex-1 p-2.5 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => moveGoal(idx, 'up')}
-                          disabled={idx === 0}
-                          aria-label={`Move Goal ${idx + 1} up`}
-                          className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          &uarr;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveGoal(idx, 'down')}
-                          disabled={idx === config.goals.length - 1}
-                          aria-label={`Move Goal ${idx + 1} down`}
-                          className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          &darr;
-                        </button>
+                <div className="space-y-2">
+                  {config.goals.map((goal, idx) => (
+                    <div key={idx} className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-[#1F8A84] shrink-0">•</span>
+                      <input
+                        type="text"
+                        value={goal}
+                        onChange={(e) => updateGoal(idx, e.target.value)}
+                        aria-label={`Goal ${idx + 1}`}
+                        className="flex-1 p-2 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                      />
+                      {config.goals.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeGoal(idx)}
                           aria-label={`Remove Goal ${idx + 1}`}
-                          className="p-1.5 px-2 rounded text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold"
+                          className="text-gray-400 hover:text-rose-600 text-xs px-1 font-bold"
                         >
                           &times;
                         </button>
-                      </div>
-                    ))}
-                    {config.goals.length === 0 && (
-                      <p className="text-xs text-gray-500 italic">No goals defined. Click &ldquo;+ Add Goal&rdquo; to add one.</p>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  ))}
+                  {config.goals.length === 0 && (
+                    <p className="text-xs text-gray-500 italic">No goals defined. Click &ldquo;+ Add goal&rdquo; to add one.</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* 2. Welcome Message */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                <label htmlFor="config-welcome-message" className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
-                  Welcome Message (First Greeting)
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
+                <label
+                  htmlFor="config-welcome-message"
+                  className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider"
+                >
+                  Welcome Message (First Spoken Greeting)
                 </label>
                 {checkAiDisclosure(config.welcomeMessage) ? (
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
@@ -1179,24 +1165,21 @@ export default function WritePage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#1F8A84] mb-3">
-                This is the first sentence the assistant speaks when answering a call. By policy, it must identify itself as AI.
-              </p>
               <textarea
                 id="config-welcome-message"
-                rows={3}
+                rows={2}
                 value={config.welcomeMessage}
                 onChange={(e) => updateConfigField('welcomeMessage', e.target.value)}
-                className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                className="w-full p-3 rounded-xl border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
               />
             </div>
 
-            {/* 2b. Hindi Welcome Message (when Hindi is enabled) */}
+            {/* 2b. Hindi Welcome Message (if Hindi is enabled) */}
             {config.languages?.some(
               (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
             ) && (
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
                   <label
                     htmlFor="config-welcome-message-hindi"
                     className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider"
@@ -1213,400 +1196,487 @@ export default function WritePage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#1F8A84] mb-3">
-                  Spoken when the caller greets or speaks in Hindi. By policy, it must identify itself as an AI assistant.
-                </p>
                 <textarea
                   id="config-welcome-message-hindi"
-                  rows={3}
+                  rows={2}
                   value={config.welcomeMessageHindi || ''}
                   placeholder="नमस्ते! मैं Smile Dental का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?"
                   onChange={(e) => updateConfigField('welcomeMessageHindi', e.target.value)}
-                  className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                  className="w-full p-3 rounded-xl border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                 />
               </div>
             )}
 
-            {/* 3. Conversation Flow - Fully Editable List */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-[#0F3D3E]">
-                  Conversation Flow
-                </h3>
-                <button
-                  type="button"
-                  onClick={addFlowStep}
-                  className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
-                >
-                  + Add Step
-                </button>
-              </div>
-              <p className="text-xs text-[#1F8A84] mb-4">
-                The ordered stages your assistant follows during a call. You can edit, reorder, or add steps.
-              </p>
-
-              <div className="space-y-4">
-                {config.flowSteps.map((step, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-5 h-5 rounded-full bg-[#0F3D3E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        value={step.title}
-                        onChange={(e) => updateFlowStep(idx, 'title', e.target.value)}
-                        aria-label={`Step ${idx + 1} Title`}
-                        className="flex-1 p-2 rounded-lg border border-[#1F8A84]/30 text-sm font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => moveFlowStep(idx, 'up')}
-                        disabled={idx === 0}
-                        aria-label={`Move Step ${idx + 1} up`}
-                        className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        &uarr;
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveFlowStep(idx, 'down')}
-                        disabled={idx === config.flowSteps.length - 1}
-                        aria-label={`Move Step ${idx + 1} down`}
-                        className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        &darr;
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeFlowStep(idx)}
-                        aria-label={`Remove Step ${idx + 1}`}
-                        className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
-                      >
-                        &times;
-                      </button>
-                    </div>
-                    <textarea
-                      rows={2}
-                      value={step.instruction}
-                      onChange={(e) => updateFlowStep(idx, 'instruction', e.target.value)}
-                      aria-label={`Step ${idx + 1} Instruction`}
-                      className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                    />
-                  </div>
-                ))}
-                {config.flowSteps.length === 0 && (
-                  <p className="text-xs text-gray-500 italic">No flow steps defined. Click &ldquo;+ Add Step&rdquo; to add one.</p>
-                )}
-              </div>
-            </div>
-
-            {/* 4. Languages & Voice Suggestion */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 3. Languages & Voice Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
               {/* Languages */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
-                  Proposed Languages
-                </h3>
-                <p className="text-xs text-[#1F8A84] mb-3">
-                  Proposed multilingual support. Voice interaction will be configured in later stages.
-                </p>
-                <div className="flex flex-wrap gap-2">
+              <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20">
+                <span className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
+                  Languages
+                </span>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   {config.languages.map((lang, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1.5 rounded-lg bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/30 text-xs font-bold"
+                      className="px-3 py-1 rounded-full bg-white text-[#0F3D3E] border border-[#1F8A84]/30 text-xs font-bold shadow-sm"
                     >
-                      {lang}
+                      🌐 {lang}
                     </span>
                   ))}
                 </div>
+                <p className="text-[11px] text-[#1F8A84]">
+                  Callers can speak English or Hindi; assistant switches automatically mid-call.
+                </p>
               </div>
 
-              {/* Voice Suggestion */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
-                  Voice Style Recommendation
-                </h3>
-                <p className="text-xs text-[#1F8A84] mb-3">
-                  Stylistic vocal recommendation. No ElevenLabs voice ID is assigned yet.
+              {/* Voice Selection & Recommendation */}
+              <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20">
+                <label
+                  htmlFor="config-voice-select"
+                  className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-1"
+                >
+                  Voice Recommendation &amp; Selection
+                </label>
+                <select
+                  id="config-voice-select"
+                  value={config.voiceName || 'Rachel (Default)'}
+                  onChange={(e) => updateConfigField('voiceName', e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none mb-1.5"
+                >
+                  <option value="Rachel (Default)">Rachel — Warm &amp; Friendly (Recommended)</option>
+                  <option value="Drew — Conversational &amp; Clear">Drew — Conversational &amp; Clear</option>
+                  <option value="Sarah — Professional &amp; Calm">Sarah — Professional &amp; Calm</option>
+                  <option value="Paul — Grounded &amp; Authoritative">Paul — Grounded &amp; Authoritative</option>
+                </select>
+                <p className="text-[11px] text-gray-600">
+                  <span className="font-semibold text-[#0F3D3E]">Recommended Style:</span> {config.voiceSuggestion || 'Warm, friendly, clear front-desk tone'}
                 </p>
-                <textarea
-                  rows={2}
-                  value={config.voiceSuggestion}
-                  onChange={(e) => updateConfigField('voiceSuggestion', e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                />
-
-                <div className="pt-3 border-t border-gray-100 mt-3">
-                  <label className="flex items-center space-x-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!config.expressiveMode}
-                      onChange={(e) => updateConfigField('expressiveMode', e.target.checked)}
-                      className="w-4 h-4 text-[#1F8A84] rounded border-gray-300 focus:ring-[#1F8A84]"
-                    />
-                    <span className="text-xs font-bold text-[#0F3D3E]">
-                      Enable Expressive Voice Delivery
-                    </span>
-                  </label>
-                  <p className="text-[11px] text-gray-500 mt-1 ml-6.5">
-                    Modulates vocal delivery with enhanced expressiveness and natural pause dynamics.
-                  </p>
-                </div>
               </div>
             </div>
 
-            {/* 5. Guardrails - Fully Editable List */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-[#0F3D3E]">
-                  Behavioural Guardrails
-                </h3>
-                <button
-                  type="button"
-                  onClick={addGuardrail}
-                  className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
-                >
-                  + Add Guardrail
-                </button>
-              </div>
-              <p className="text-xs text-[#1F8A84] mb-4">
-                Safety and compliance boundaries the assistant must respect on every call.
-              </p>
-              <div className="space-y-2">
-                {config.guardrails.map((rule, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <span className="text-xs font-bold text-[#1F8A84] w-5 text-center">🛡️</span>
-                    <input
-                      type="text"
-                      value={rule}
-                      onChange={(e) => updateGuardrail(idx, e.target.value)}
-                      aria-label={`Guardrail ${idx + 1}`}
-                      className="flex-1 p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => moveGuardrail(idx, 'up')}
-                      disabled={idx === 0}
-                      aria-label={`Move Guardrail ${idx + 1} up`}
-                      className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      &uarr;
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveGuardrail(idx, 'down')}
-                      disabled={idx === config.guardrails.length - 1}
-                      aria-label={`Move Guardrail ${idx + 1} down`}
-                      className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      &darr;
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeGuardrail(idx)}
-                      aria-label={`Remove Guardrail ${idx + 1}`}
-                      className="p-1.5 px-2 rounded text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold"
-                    >
-                      &times;
-                    </button>
+            {/* 4. Concise Conversation-Flow Preview */}
+            <div className="pt-1">
+              <span className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
+                Conversation Flow Preview
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {config.flowSteps.map((step, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-[#E8F1EF]/60 border border-[#1F8A84]/25 flex flex-col justify-between"
+                  >
+                    <div>
+                      <span className="text-[10px] font-bold text-[#1F8A84] uppercase tracking-wider block">
+                        Stage {idx + 1}
+                      </span>
+                      <p className="text-xs font-bold text-[#0F3D3E] mt-0.5 truncate">
+                        {step.title}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-gray-600 mt-2 block line-clamp-2 leading-tight">
+                      {step.instruction}
+                    </span>
                   </div>
                 ))}
-                {config.guardrails.length === 0 && (
-                  <p className="text-xs text-gray-500 italic">No guardrails defined. Click &ldquo;+ Add Guardrail&rdquo; to add one.</p>
-                )}
               </div>
             </div>
 
-            {/* 6. Proposed Tools - Fully Editable List */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-[#0F3D3E]">
-                  Proposed Tools
-                </h3>
-                <button
-                  type="button"
-                  onClick={addTool}
-                  className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
-                >
-                  + Add Tool
-                </button>
+            {/* 5. Primary First-Time User CTA to Proceed to Next Stage */}
+            <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-[#0F3D3E]">
+                  Ready to test your assistant with real voice?
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Proceed to Step 2 to speak directly with your assistant using your microphone.
+                </p>
               </div>
-              <p className="text-xs text-[#1F8A84] mb-4">
-                Capabilities proposed for this assistant. These are drafts only and not connected to live external systems.
-              </p>
+              <Link
+                href="/test"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white font-bold text-sm tracking-wide shadow-md transition-all flex items-center justify-center space-x-2 shrink-0 hover:scale-[1.02]"
+              >
+                <span>Test your assistant</span>
+                <span>&rarr;</span>
+              </Link>
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                {config.tools.map((tool, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
+          {/* Collapsible Advanced Settings Section */}
+          <details
+            open
+            className="border border-[#1F8A84]/25 bg-[#F8FAF9] rounded-2xl p-6 transition-all group"
+          >
+            <summary className="cursor-pointer text-sm font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
+              <span className="flex items-center space-x-2">
+                <span>⚙️</span>
+                <span>Advanced Settings &amp; Detailed Customization</span>
+                <span className="text-xs text-gray-500 font-normal hidden sm:inline">
+                  (Custom flow steps, behavioural rules, proposed tools &amp; knowledge base files)
+                </span>
+              </span>
+              <span className="text-xs font-bold text-[#1F8A84]">
+                Collapse / Expand
+              </span>
+            </summary>
+
+            <div className="mt-6 space-y-6 pt-4 border-t border-[#1F8A84]/15">
+              {/* Personality & Tone */}
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
+                  Personality &amp; Tone Instructions
+                </h3>
+                <textarea
+                  id="config-agent-persona"
+                  rows={2}
+                  value={config.persona}
+                  onChange={(e) => updateConfigField('persona', e.target.value)}
+                  className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                />
+              </div>
+
+              {/* Detailed Flow Step Editor */}
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                    Detailed Conversation Flow Steps
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addFlowStep}
+                    className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
+                  >
+                    + Add Step
+                  </button>
+                </div>
+                <p className="text-xs text-[#1F8A84] mb-4">
+                  The ordered stages your assistant follows during a call. You can edit instructions, reorder, or add steps.
+                </p>
+
+                <div className="space-y-4">
+                  {config.flowSteps.map((step, idx) => (
+                    <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-5 h-5 rounded-full bg-[#0F3D3E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={step.title}
+                          onChange={(e) => updateFlowStep(idx, 'title', e.target.value)}
+                          aria-label={`Step ${idx + 1} Title`}
+                          className="flex-1 p-2 rounded-lg border border-[#1F8A84]/30 text-sm font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => moveFlowStep(idx, 'up')}
+                          disabled={idx === 0}
+                          aria-label={`Move Step ${idx + 1} up`}
+                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          &uarr;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveFlowStep(idx, 'down')}
+                          disabled={idx === config.flowSteps.length - 1}
+                          aria-label={`Move Step ${idx + 1} down`}
+                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          &darr;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFlowStep(idx)}
+                          aria-label={`Remove Step ${idx + 1}`}
+                          className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={step.instruction}
+                        onChange={(e) => updateFlowStep(idx, 'instruction', e.target.value)}
+                        aria-label={`Step ${idx + 1} Instruction`}
+                        className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                  {config.flowSteps.length === 0 && (
+                    <p className="text-xs text-gray-500 italic">No flow steps defined. Click &ldquo;+ Add Step&rdquo; to add one.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Behavioural Guardrails */}
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                    Behavioural Guardrails
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addGuardrail}
+                    className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
+                  >
+                    + Add Guardrail
+                  </button>
+                </div>
+                <p className="text-xs text-[#1F8A84] mb-4">
+                  Safety and compliance boundaries the assistant must respect on every call.
+                </p>
+                <div className="space-y-2">
+                  {config.guardrails.map((rule, idx) => (
+                    <div key={idx} className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-[#1F8A84] w-5 text-center">🛡️</span>
                       <input
                         type="text"
-                        value={tool.name}
-                        onChange={(e) => updateTool(idx, 'name', e.target.value)}
-                        aria-label={`Tool ${idx + 1} Name`}
-                        className="font-bold text-sm text-[#0F3D3E] bg-white p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                        value={rule}
+                        onChange={(e) => updateGuardrail(idx, e.target.value)}
+                        aria-label={`Guardrail ${idx + 1}`}
+                        className="flex-1 p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => moveTool(idx, 'up')}
+                        onClick={() => moveGuardrail(idx, 'up')}
                         disabled={idx === 0}
-                        aria-label={`Move Tool ${idx + 1} up`}
-                        className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={`Move Guardrail ${idx + 1} up`}
+                        className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         &uarr;
                       </button>
                       <button
                         type="button"
-                        onClick={() => moveTool(idx, 'down')}
-                        disabled={idx === config.tools.length - 1}
-                        aria-label={`Move Tool ${idx + 1} down`}
-                        className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        onClick={() => moveGuardrail(idx, 'down')}
+                        disabled={idx === config.guardrails.length - 1}
+                        aria-label={`Move Guardrail ${idx + 1} down`}
+                        className="p-1.5 px-2 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         &darr;
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeTool(idx)}
-                        aria-label={`Remove Tool ${idx + 1}`}
-                        className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
+                        onClick={() => removeGuardrail(idx)}
+                        aria-label={`Remove Guardrail ${idx + 1}`}
+                        className="p-1.5 px-2 rounded text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold"
                       >
                         &times;
                       </button>
                     </div>
-                    <textarea
-                      rows={2}
-                      value={tool.purpose}
-                      onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
-                      aria-label={`Tool ${idx + 1} Purpose`}
-                      className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                    />
-                    <div className="pt-1">
-                      <span className="inline-block px-2.5 py-1 rounded bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/30 text-[11px] font-semibold">
-                        {tool.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {config.tools.length === 0 && (
-                  <p className="text-xs text-gray-500 italic">No tools proposed. Click &ldquo;+ Add Tool&rdquo; to add one.</p>
-                )}
+                  ))}
+                  {config.guardrails.length === 0 && (
+                    <p className="text-xs text-gray-500 italic">No guardrails defined. Click &ldquo;+ Add Guardrail&rdquo; to add one.</p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* 7. Attached Knowledge (from website if present) */}
-            {config.knowledge && (
+              {/* Proposed Tools */}
               <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold text-[#0F3D3E]">
-                    Attached Website Knowledge
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                    Proposed Tools
                   </h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
-                    Verified from website
-                  </span>
+                  <button
+                    type="button"
+                    onClick={addTool}
+                    className="px-2.5 py-1 text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] hover:bg-[#1F8A84] hover:text-white rounded border border-[#1F8A84]/30 transition-colors"
+                  >
+                    + Add Tool
+                  </button>
                 </div>
-                <p className="text-xs text-[#1F8A84] mb-3">
-                  These verified facts were used to formulate the assistant&apos;s guardrails and conversation steps, and are saved in the agent configuration.
+                <p className="text-xs text-[#1F8A84] mb-4">
+                  Customer-service tools proposed for this assistant. These are drafts only and not connected to live external systems.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#E8F1EF]/30 p-4 rounded-xl border border-[#1F8A84]/20">
-                  {config.knowledge.business_name && (
-                    <div>
-                      <strong className="text-[#0F3D3E]">Business:</strong> {config.knowledge.business_name}
-                    </div>
-                  )}
-                  {config.knowledge.opening_hours && (
-                    <div>
-                      <strong className="text-[#0F3D3E]">Hours:</strong> {config.knowledge.opening_hours}
-                    </div>
-                  )}
-                  {config.knowledge.prices && config.knowledge.prices.length > 0 && (
-                    <div className="sm:col-span-2">
-                      <strong className="text-[#0F3D3E]">Verified Prices:</strong>{' '}
-                      {config.knowledge.prices.map((p) => `${p.item} (${p.price})`).join(', ')}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* 8. Knowledge Base Documents (PDF, TXT, DOCX) */}
-            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <div>
-                  <h3 className="text-lg font-bold text-[#0F3D3E]">
-                    Knowledge Base Documents (PDF, TXT, DOCX)
-                  </h3>
-                  <p className="text-xs text-[#1F8A84]">
-                    Upload clinic manuals, policy documents, or pricing sheets directly to your agent.
-                  </p>
-                </div>
-                <label className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer inline-flex items-center space-x-1.5 shrink-0">
-                  <span>📎 Upload Document</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.txt,.docx,.doc,.md"
-                    onChange={handleDocumentUpload}
-                    disabled={isUploadingDoc}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {isUploadingDoc && (
-                <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-800 flex items-center space-x-2 mb-3">
-                  <svg className="animate-spin h-4 w-4 text-teal-700" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  <span>Uploading document to ElevenLabs Knowledge Base...</span>
-                </div>
-              )}
-
-              {docUploadError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 mb-3 flex items-center justify-between">
-                  <span>⚠️ {docUploadError}</span>
-                  <button onClick={() => setDocUploadError(null)} className="font-bold">✕</button>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {Array.isArray(config.knowledgeBaseDocuments) &&
-                  config.knowledgeBaseDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 flex items-center justify-between"
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <span className="text-lg">📄</span>
-                        <div>
-                          <p className="text-xs font-bold text-[#0F3D3E]">{doc.name}</p>
-                          <p className="text-[10px] text-gray-500">
-                            {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : 'Document'} · Synced with ElevenLabs Knowledge Base
-                          </p>
-                        </div>
+                <div className="space-y-4">
+                  {config.tools.map((tool, idx) => (
+                    <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <input
+                          type="text"
+                          value={tool.name}
+                          onChange={(e) => updateTool(idx, 'name', e.target.value)}
+                          aria-label={`Tool ${idx + 1} Name`}
+                          className="font-bold text-sm text-[#0F3D3E] bg-white p-2 rounded-lg border border-[#1F8A84]/30 flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => moveTool(idx, 'up')}
+                          disabled={idx === 0}
+                          aria-label={`Move Tool ${idx + 1} up`}
+                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          &uarr;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveTool(idx, 'down')}
+                          disabled={idx === config.tools.length - 1}
+                          aria-label={`Move Tool ${idx + 1} down`}
+                          className="p-1.5 px-2 rounded text-xs bg-white hover:bg-gray-100 border border-[#1F8A84]/30 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          &darr;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeTool(idx)}
+                          aria-label={`Remove Tool ${idx + 1}`}
+                          className="p-1.5 px-2 rounded text-xs text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 font-bold"
+                        >
+                          &times;
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDoc(doc.id)}
-                        className="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1 rounded hover:bg-rose-50"
-                        title="Remove document"
-                      >
-                        Remove
-                      </button>
+                      <textarea
+                        rows={2}
+                        value={tool.purpose}
+                        onChange={(e) => updateTool(idx, 'purpose', e.target.value)}
+                        aria-label={`Tool ${idx + 1} Purpose`}
+                        className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                      />
+                      <div className="pt-1">
+                        <span className="inline-block px-2.5 py-1 rounded bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/30 text-[11px] font-semibold">
+                          {tool.status}
+                        </span>
+                      </div>
                     </div>
                   ))}
+                  {config.tools.length === 0 && (
+                    <p className="text-xs text-gray-500 italic">No tools proposed. Click &ldquo;+ Add Tool&rdquo; to add one.</p>
+                  )}
+                </div>
+              </div>
 
-                {(!config.knowledgeBaseDocuments || config.knowledgeBaseDocuments.length === 0) && (
-                  <div className="p-6 text-center border-2 border-dashed border-gray-200 rounded-xl">
-                    <p className="text-xs text-gray-500">
-                      No documents uploaded yet. Upload PDFs or policies to automatically power your agent with RAG.
+              {/* Attached Website Knowledge */}
+              {config.knowledge && (
+                <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                      Attached Website Knowledge
+                    </h3>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                      Verified from website
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#1F8A84] mb-3">
+                    These verified facts were used to formulate the assistant&apos;s guardrails and conversation steps.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#E8F1EF]/30 p-4 rounded-xl border border-[#1F8A84]/20">
+                    {config.knowledge.business_name && (
+                      <div>
+                        <strong className="text-[#0F3D3E]">Business:</strong> {config.knowledge.business_name}
+                      </div>
+                    )}
+                    {config.knowledge.opening_hours && (
+                      <div>
+                        <strong className="text-[#0F3D3E]">Hours:</strong> {config.knowledge.opening_hours}
+                      </div>
+                    )}
+                    {config.knowledge.prices && config.knowledge.prices.length > 0 && (
+                      <div className="sm:col-span-2">
+                        <strong className="text-[#0F3D3E]">Verified Prices:</strong>{' '}
+                        {config.knowledge.prices.map((p) => `${p.item} (${p.price})`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Knowledge Base Documents */}
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
+                      Knowledge Base Documents (PDF, TXT, DOCX)
+                    </h3>
+                    <p className="text-xs text-[#1F8A84]">
+                      Upload clinic manuals, policy documents, or pricing sheets directly to your agent.
                     </p>
                   </div>
+                  <label className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer inline-flex items-center space-x-1.5 shrink-0">
+                    <span>📎 Upload Document</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx,.doc,.md"
+                      onChange={handleDocumentUpload}
+                      disabled={isUploadingDoc}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {isUploadingDoc && (
+                  <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-800 flex items-center space-x-2 mb-3">
+                    <svg className="animate-spin h-4 w-4 text-teal-700" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Uploading document to ElevenLabs Knowledge Base...</span>
+                  </div>
                 )}
+
+                {docUploadError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 mb-3 flex items-center justify-between">
+                    <span>⚠️ {docUploadError}</span>
+                    <button onClick={() => setDocUploadError(null)} className="font-bold">✕</button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {Array.isArray(config.knowledgeBaseDocuments) &&
+                    config.knowledgeBaseDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-2.5">
+                          <span className="text-lg">📄</span>
+                          <div>
+                            <p className="text-xs font-bold text-[#0F3D3E]">{doc.name}</p>
+                            <p className="text-[10px] text-gray-500">
+                              {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : 'Document'} · Synced with ElevenLabs Knowledge Base
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDoc(doc.id)}
+                          className="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1 rounded hover:bg-rose-50"
+                          title="Remove document"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+
+                  {(!config.knowledgeBaseDocuments || config.knowledgeBaseDocuments.length === 0) && (
+                    <div className="p-6 text-center border-2 border-dashed border-gray-200 rounded-xl">
+                      <p className="text-xs text-gray-500">
+                        No documents uploaded yet. Upload PDFs or policies to automatically power your agent with RAG.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Expressive Delivery Toggle */}
+              <div className="p-4 rounded-xl bg-white border border-[#1F8A84]/25">
+                <label className="flex items-center space-x-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!config.expressiveMode}
+                    onChange={(e) => updateConfigField('expressiveMode', e.target.checked)}
+                    className="w-4 h-4 text-[#1F8A84] rounded border-gray-300 focus:ring-[#1F8A84]"
+                  />
+                  <span className="text-xs font-bold text-[#0F3D3E]">
+                    Enable Expressive Voice Delivery
+                  </span>
+                </label>
+                <p className="text-[11px] text-gray-500 mt-1 ml-6.5">
+                  Modulates vocal delivery with enhanced expressiveness and natural pause dynamics.
+                </p>
               </div>
             </div>
-          </div>
+          </details>
         </section>
       )}
     </div>

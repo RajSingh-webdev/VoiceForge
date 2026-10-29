@@ -324,134 +324,91 @@ function TestConversationInner() {
 
   return (
     <div className="space-y-6">
-      {/* Requirement 5: Which agent? Selector */}
-      <div className="bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm text-left">
-        <label
-          htmlFor="agent-selector-heading"
-          id="agent-selector-heading"
-          className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-2"
-        >
-          Which agent?
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          {/* Option 1: Hand-made agent */}
-          <button
-            type="button"
-            id="select-handmade"
-            onClick={() => setSelectedAgentSource('handmade')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              selectedAgentSource === 'handmade'
-                ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
-                : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold text-[#0F3D3E]">Hand-made agent</span>
-              {selectedAgentSource === 'handmade' && (
-                <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
-                  Active
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-600 font-mono break-all">
-              {handMadeAgentId ? handMadeAgentId : 'Configured in ELEVENLABS_AGENT_ID'}
-            </p>
-          </button>
-
-          {/* Option 2: Agent built on the Write page */}
-          <button
-            type="button"
-            id="select-deployed"
-            onClick={() => {
-              if (deployedAgentId) setSelectedAgentSource('deployed');
-            }}
-            disabled={!deployedAgentId}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              !deployedAgentId
-                ? 'opacity-60 cursor-not-allowed border-gray-200 bg-gray-50'
-                : selectedAgentSource === 'deployed'
-                ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
-                : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold text-[#0F3D3E]">
-                Agent built on the Write page
-              </span>
-              {selectedAgentSource === 'deployed' && (
-                <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
-                  Active
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-600 font-mono break-all">
-              {deployedAgentId ? deployedAgentId : 'Not deployed yet on /deploy'}
-            </p>
-          </button>
+      {/* Plain Language Voice & Language Banner */}
+      <div className="p-4 rounded-2xl bg-white border border-[#1F8A84]/25 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#0F3D3E]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-[#E8F1EF] text-[#0F3D3E] font-bold border border-[#1F8A84]/30 flex items-center space-x-1">
+            <span>🎙️</span>
+            <span>Rachel (Natural Conversational Voice)</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-[#E8F1EF] text-[#0F3D3E] font-bold border border-[#1F8A84]/30 flex items-center space-x-1">
+            <span>🌐</span>
+            <span>English &amp; Hindi (automatic language switching)</span>
+          </span>
         </div>
-
-        {/* Show which agent is active */}
-        <div className="p-3 rounded-xl bg-[#E8F1EF]/70 border border-[#1F8A84]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="font-bold text-[#0F3D3E]">Active Agent:</span>
-            <span className="text-[#1F8A84] font-semibold">
-              {selectedAgentSource === 'handmade'
-                ? `Hand-made agent (${handMadeAgentId || 'Workspace default'})`
-                : `Agent built on the Write page (${deployedAgentId || 'None'})`}
-            </span>
-          </div>
-          {activeAgentId && (
-            <span className="font-mono text-[10px] text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200 self-start sm:self-auto">
-              ID: {activeAgentId}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Headphones Tip */}
-      <div className="p-3 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/25 flex items-center justify-between text-xs text-[#0F3D3E]">
-        <span className="font-medium">🎧 Tip: Use headphones to avoid echo.</span>
-        <span className="text-[11px] text-[#1F8A84] font-semibold">
-          Full-duplex interruptions supported
+        <span className="text-[11px] text-[#1F8A84] font-medium flex items-center space-x-1">
+          <span>🎧</span>
+          <span>Use headphones to avoid acoustic echo</span>
         </span>
       </div>
 
       {/* Main Voice Interaction Card */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#1F8A84]/25 shadow-sm text-center">
-        {/* Status Line */}
-        <div className="flex items-center justify-center space-x-2 mb-6">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-            Status:
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs border ${statusBadgeClass}`}>
-            {statusText}
-          </span>
+      <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-[#1F8A84]/30 shadow-sm text-center">
+        {/* Status Line with Animated Voice State */}
+        <div className="flex flex-col items-center justify-center space-y-2 mb-6">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+              Voice State:
+            </span>
+            <span className={`px-3 py-1 rounded-full text-xs border ${statusBadgeClass}`}>
+              {statusText}
+            </span>
+          </div>
+
+          {/* Real-time conversational state explanation */}
+          {isConnected && (
+            <div className="flex items-center space-x-2 text-xs font-medium mt-1">
+              {isSpeaking ? (
+                <div className="flex items-center space-x-2 text-purple-800 bg-purple-50 px-3 py-1 rounded-full border border-purple-200 animate-pulse">
+                  <span className="flex space-x-0.5">
+                    <span className="w-1 h-3 bg-purple-600 rounded animate-bounce"></span>
+                    <span className="w-1 h-4 bg-purple-600 rounded animate-bounce [animation-delay:0.1s]"></span>
+                    <span className="w-1 h-2 bg-purple-600 rounded animate-bounce [animation-delay:0.2s]"></span>
+                  </span>
+                  <span>Assistant is speaking... You can speak at any time to interrupt.</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Listening to you... Speak naturally in English or Hindi.</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Big Mic Button */}
+        {/* Clear Start / End Conversation Button */}
         <div className="mb-6 flex flex-col items-center">
           <button
             type="button"
             onClick={handleToggleConversation}
             disabled={isRealVoiceConfigured !== true || isConnecting}
-            className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full flex flex-col items-center justify-center transition-all shadow-md ${
+            className={`relative min-w-[220px] py-4 px-8 rounded-2xl flex items-center justify-center space-x-3 transition-all shadow-md ${
               isRealVoiceConfigured !== true
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-4 border-gray-300'
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
                 : isConnected
-                ? 'bg-red-600 hover:bg-red-700 text-white ring-4 ring-red-200 shadow-red-200 animate-pulse'
+                ? 'bg-red-600 hover:bg-red-700 text-white ring-4 ring-red-100 shadow-red-200 animate-pulse'
                 : isConnecting
                 ? 'bg-amber-500 text-white cursor-wait ring-4 ring-amber-100'
-                : 'bg-[#0F3D3E] hover:bg-[#1F8A84] text-white ring-4 ring-[#E8F1EF] hover:scale-105'
+                : 'bg-[#0F3D3E] hover:bg-[#1F8A84] text-white ring-4 ring-[#E8F1EF] hover:scale-[1.02] active:scale-[0.99]'
             }`}
             aria-label={isConnected ? 'End conversation' : 'Start conversation'}
           >
-            <span className="text-3xl sm:text-4xl mb-1">
+            <span className="text-2xl">
               {isConnected ? '🛑' : isConnecting ? '⏳' : '🎙️'}
             </span>
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">
-              {isConnected ? 'End Call' : isConnecting ? 'Connecting' : 'Start Call'}
-            </span>
+            <div className="text-left">
+              <span className="block text-sm font-extrabold uppercase tracking-wider">
+                {isConnected ? 'End conversation' : isConnecting ? 'Connecting...' : 'Start conversation'}
+              </span>
+              <span className="block text-[11px] opacity-80 font-normal">
+                {isConnected
+                  ? 'Click to hang up call'
+                  : isConnecting
+                  ? 'Establishing secure audio stream'
+                  : 'Click to speak with assistant'}
+              </span>
+            </div>
           </button>
 
           {/* If ELEVENLABS_REAL_VOICE is not "true" */}
@@ -461,23 +418,26 @@ function TestConversationInner() {
             </p>
           )}
 
-          {/* Clear Error Message */}
+          {/* Clear Error Messages with actionable guidance */}
           {sessionError && (
             <div
               role="alert"
-              className="mt-4 max-w-md w-full p-3.5 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs font-medium text-left flex items-start space-x-2"
+              className="mt-4 max-w-lg w-full p-4 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs font-medium text-left flex items-start space-x-3 shadow-sm"
             >
-              <span className="font-bold text-red-700">⚠️</span>
-              <p className="leading-relaxed">{sessionError}</p>
+              <span className="text-lg shrink-0">⚠️</span>
+              <div>
+                <p className="font-bold text-red-950">Conversation Notice</p>
+                <p className="mt-0.5 leading-relaxed">{sessionError}</p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Metrics Bar: Approximate Response Time */}
+        {/* Metrics Bar: Response Time & Turn Delays */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto pt-4 border-t border-gray-100">
           <div className="p-3 bg-[#E8F1EF]/40 rounded-xl border border-[#1F8A84]/20 text-center">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] block mb-0.5">
-              Latest Turn Delay (approximate)
+              Latest Turn Delay
             </span>
             <span className="text-sm font-extrabold text-[#0F3D3E]">
               {latestLatency || 'Awaiting turn'}
@@ -495,15 +455,97 @@ function TestConversationInner() {
         </div>
       </div>
 
+      {/* Advanced Agent Selection (Kept accessible but out of the primary flow) */}
+      <details className="bg-white p-4 rounded-2xl border border-gray-200 text-left text-xs group">
+        <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
+          <span className="flex items-center space-x-2">
+            <span>⚙️</span>
+            <span>Advanced: Choose Agent Target</span>
+            <span className="text-gray-400 font-normal">
+              ({selectedAgentSource === 'handmade' ? 'Using hand-made agent' : 'Using agent built on Write page'})
+            </span>
+          </span>
+          <span className="text-xs text-[#1F8A84] font-medium">Configure</span>
+        </summary>
+        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Option 1: Hand-made agent */}
+            <button
+              type="button"
+              id="select-handmade"
+              onClick={() => setSelectedAgentSource('handmade')}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                selectedAgentSource === 'handmade'
+                  ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
+                  : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-[#0F3D3E]">Hand-made agent</span>
+                {selectedAgentSource === 'handmade' && (
+                  <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-600 font-mono break-all">
+                {handMadeAgentId ? handMadeAgentId : 'Configured in ELEVENLABS_AGENT_ID'}
+              </p>
+            </button>
+
+            {/* Option 2: Agent built on the Write page */}
+            <button
+              type="button"
+              id="select-deployed"
+              onClick={() => {
+                if (deployedAgentId) setSelectedAgentSource('deployed');
+              }}
+              disabled={!deployedAgentId}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                !deployedAgentId
+                  ? 'opacity-60 cursor-not-allowed border-gray-200 bg-gray-50'
+                  : selectedAgentSource === 'deployed'
+                  ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
+                  : 'border-gray-200 bg-white hover:bg-[#E8F1EF]/40'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-[#0F3D3E]">
+                  Agent built on the Write page
+                </span>
+                {selectedAgentSource === 'deployed' && (
+                  <span className="text-[10px] font-bold bg-[#0F3D3E] text-white px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-600 font-mono break-all">
+                {deployedAgentId ? deployedAgentId : 'Not deployed yet on /deploy'}
+              </p>
+            </button>
+          </div>
+          {activeAgentId && (
+            <div className="text-[11px] text-gray-500 font-mono">
+              Active Agent Target ID: {activeAgentId}
+            </div>
+          )}
+        </div>
+      </details>
+
       {/* Real-time Streaming Transcript & Events */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Transcript Panel */}
-        <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[400px]">
+        <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[420px]">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
-              Live Streaming Transcript
-            </h3>
-            <span className="text-[10px] text-[#1F8A84] font-medium">Full duplex</span>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
+                Live Streaming Conversation Transcript
+              </h3>
+              <p className="text-[10px] text-[#1F8A84]">Real-time speech transcription &amp; agent replies</p>
+            </div>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-200">
+              Full duplex
+            </span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -512,28 +554,31 @@ function TestConversationInner() {
               return (
                 <div
                   key={item.id}
-                  className={`p-3 rounded-xl text-xs leading-relaxed ${
+                  className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
                     isAgent
-                      ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-4 border border-[#1F8A84]/20'
-                      : 'bg-gray-100 text-gray-800 ml-4 border border-gray-200'
+                      ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-6 border border-[#1F8A84]/30'
+                      : 'bg-gray-100 text-gray-900 ml-6 border border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-bold text-[10px] uppercase tracking-wider text-[#0F3D3E]">
-                      {isAgent ? '🤖 Voice Assistant' : '👤 You (Caller)'}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-extrabold text-[10px] uppercase tracking-wider text-[#0F3D3E]">
+                      {isAgent ? '🤖 Assistant (AI)' : '👤 You (Caller)'}
                     </span>
-                    <span className="text-[10px] text-gray-400">{item.time}</span>
+                    <span className="text-[10px] text-gray-400 font-mono">{item.time}</span>
                   </div>
-                  <p>{item.text}</p>
+                  <p className="text-xs font-normal">{item.text}</p>
                 </div>
               );
             })}
 
             {transcript.length === 0 && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-400 italic">
-                {isConnected
-                  ? 'Speak into your microphone to start the conversation...'
-                  : 'Start the conversation to view live streaming transcript.'}
+              <div className="h-full flex flex-col items-center justify-center text-xs text-gray-400 text-center px-4">
+                <span className="text-2xl mb-2">💬</span>
+                <p>
+                  {isConnected
+                    ? 'Speak into your microphone to talk to the assistant...'
+                    : 'Click "Start conversation" to test your assistant live.'}
+                </p>
               </div>
             )}
             <div ref={transcriptEndRef} />
@@ -541,12 +586,15 @@ function TestConversationInner() {
         </div>
 
         {/* Events Panel */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[400px]">
+        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[420px]">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
-              SDK Events Panel
-            </h3>
-            <span className="text-[10px] text-gray-400">Tools, modes &amp; state</span>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
+                SDK Audio Events &amp; Tools
+              </h3>
+              <p className="text-[10px] text-gray-400">Interruption, mode changes &amp; tool requests</p>
+            </div>
+            <span className="text-[10px] text-gray-500 font-mono">ElevenLabs SDK</span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -559,7 +607,7 @@ function TestConversationInner() {
                   <span className="font-bold text-[11px] text-[#0F3D3E]">
                     {evt.title}
                   </span>
-                  <span className="text-[10px] text-gray-400">{evt.time}</span>
+                  <span className="text-[10px] text-gray-400 font-mono">{evt.time}</span>
                 </div>
                 <p className="text-[11px] text-gray-600 font-mono break-all leading-tight">
                   {evt.detail}
@@ -569,7 +617,7 @@ function TestConversationInner() {
 
             {events.length === 0 && (
               <div className="h-full flex items-center justify-center text-xs text-gray-400 italic">
-                No events reported
+                No events reported yet
               </div>
             )}
           </div>

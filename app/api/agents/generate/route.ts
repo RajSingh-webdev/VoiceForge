@@ -12,6 +12,26 @@ function cleanJsonText(raw: string): string {
   return cleaned;
 }
 
+const FORBIDDEN_PLATFORM_TERMS = [
+  'call analysis',
+  'health check',
+  'ssrf',
+  'api monitoring',
+  'application deployment',
+  'database log',
+  'server maintenance',
+  'backend check',
+  'developer tool',
+  'deployment pipeline',
+  'quota tracking',
+  'latency metric',
+];
+
+function containsPlatformInternal(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  return FORBIDDEN_PLATFORM_TERMS.some((term) => lower.includes(term));
+}
+
 function hasAiDisclosure(text: string): boolean {
   const lower = text.toLowerCase();
   return (
@@ -42,8 +62,10 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
     ? data.persona.trim()
     : 'Helpful, courteous and professional';
 
-  const goals: string[] = Array.isArray(data.goals)
-    ? data.goals.filter((g: any) => typeof g === 'string' && g.trim()).map((g: string) => g.trim())
+  let goals: string[] = Array.isArray(data.goals)
+    ? data.goals
+        .filter((g: any) => typeof g === 'string' && g.trim() && !containsPlatformInternal(g))
+        .map((g: string) => g.trim())
     : [];
   if (goals.length === 0) {
     goals.push('Understand customer inquiries and provide clear answers');
@@ -52,7 +74,7 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
 
   const flowSteps: FlowStep[] = Array.isArray(data.flowSteps)
     ? data.flowSteps
-        .filter((s: any) => s && typeof s === 'object')
+        .filter((s: any) => s && typeof s === 'object' && !containsPlatformInternal(s.title || ''))
         .map((s: any, idx: number) => ({
           title: typeof s.title === 'string' && s.title.trim() ? s.title.trim() : `Step ${idx + 1}`,
           instruction: typeof s.instruction === 'string' && s.instruction.trim()
@@ -84,12 +106,17 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
   if (!hasEnglish) languages.unshift('English');
   if (!hasHindi) languages.push('Hindi');
 
-  const voiceSuggestion = typeof data.voiceSuggestion === 'string' && data.voiceSuggestion.trim()
+  let voiceSuggestion = typeof data.voiceSuggestion === 'string' && data.voiceSuggestion.trim()
     ? data.voiceSuggestion.trim()
     : 'A clear, natural, and friendly conversational tone.';
+  if (voiceSuggestion.toLowerCase().includes('scribe')) {
+    voiceSuggestion = 'A clear, natural, and friendly conversational tone.';
+  }
 
-  const guardrails: string[] = Array.isArray(data.guardrails)
-    ? data.guardrails.filter((g: any) => typeof g === 'string' && g.trim()).map((g: string) => g.trim())
+  let guardrails: string[] = Array.isArray(data.guardrails)
+    ? data.guardrails
+        .filter((g: any) => typeof g === 'string' && g.trim() && !containsPlatformInternal(g))
+        .map((g: string) => g.trim())
     : [];
   if (guardrails.length === 0) {
     guardrails.push("Stay focused strictly on the assistant's defined responsibilities.");
@@ -99,7 +126,13 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
 
   const tools: ProposedTool[] = Array.isArray(data.tools)
     ? data.tools
-        .filter((t: any) => t && typeof t === 'object')
+        .filter(
+          (t: any) =>
+            t &&
+            typeof t === 'object' &&
+            !containsPlatformInternal(t.name || '') &&
+            !containsPlatformInternal(t.purpose || '')
+        )
         .map((t: any, idx: number) => ({
           name: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : `Proposed Tool ${idx + 1}`,
           purpose: typeof t.purpose === 'string' && t.purpose.trim()
@@ -193,6 +226,12 @@ Strict Requirements:
 3. The languages array MUST include both "English" and "Hindi".
 4. The flowSteps array must provide clear, ordered steps with "title" and "instruction".
 5. The tools array must contain proposed tools needed for this assistant, each with "name", "purpose", and "status" set to "Proposed — integration not connected".
+6. BUSINESS FOCUS & SCOPE:
+   - Focus EXCLUSIVELY on customer-facing business capabilities described by the user (for example, answering clinic hours and verified pricing, booking appointments, routing calls to human staff).
+   - NEVER invent clinic facts, unverified pricing, medical advice, or government schemes not provided in the description or verified facts.
+   - NEVER include developer or platform internals (e.g. call analysis, health checks, SSRF protection, API monitoring, application deployment, database logs, server maintenance).
+   - DO NOT suggest "Scribe" as a voice-generation model. Scribe is an audio transcription (speech-to-text) model, not a voice. Keep speech recognition and voice generation conceptually separate. Suggest natural voice traits (e.g. "Warm, friendly, clear conversational tone").
+   - Clearly distinguish proposed business capabilities from integrations actually configured: all tools must have status set to "Proposed — integration not connected".
 
 JSON Schema:
 {
