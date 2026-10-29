@@ -2,7 +2,15 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts, ExtractedPrice, ExtractedFaq } from '@/lib/types';
+import {
+  AgentConfig,
+  FlowStep,
+  ProposedTool,
+  ExtractedFacts,
+  ExtractedPrice,
+  ExtractedFaq,
+  BookingRecord,
+} from '@/lib/types';
 import { useAgentConfig } from '@/lib/useAgentConfig';
 import {
   normalizeAgentTools,
@@ -175,6 +183,26 @@ export default function WritePage() {
 
   const [isTestingBooking, setIsTestingBooking] = useState<boolean>(false);
   const [bookingResult, setBookingResult] = useState<string | null>(null);
+  const [showBookingsList, setShowBookingsList] = useState<boolean>(false);
+  const [savedBookings, setSavedBookings] = useState<BookingRecord[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
+
+  const fetchBookings = async () => {
+    setIsLoadingBookings(true);
+    try {
+      const res = await fetch('/api/webhooks/booking');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.bookings)) {
+          setSavedBookings(data.bookings);
+        }
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
 
   const handleTestBooking = async () => {
     setIsTestingBooking(true);
@@ -195,6 +223,8 @@ export default function WritePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Booking test failed');
       setBookingResult('✓ Booking confirmed! Webhook test appointment recorded successfully.');
+      setShowBookingsList(true);
+      fetchBookings();
       setTimeout(() => setBookingResult(null), 5000);
     } catch (err: any) {
       setBookingResult(`⚠️ ${err.message || 'Booking test failed'}`);
@@ -429,6 +459,11 @@ export default function WritePage() {
       }
     }
   };
+
+  // Initial load: fetch saved bookings
+  React.useEffect(() => {
+    fetchBookings();
+  }, []);
 
   // Auto-normalize tools and capability mapping on load
   React.useEffect(() => {
@@ -1802,19 +1837,81 @@ export default function WritePage() {
                       <span className="text-xs text-[#1F8A84]">
                         Ready to accept live appointment bookings during voice calls.
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleTestBooking}
-                        disabled={isTestingBooking}
-                        className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center space-x-1 shadow-2xs shrink-0"
-                      >
-                        <span>{isTestingBooking ? 'Testing...' : '📅 Test Booking'}</span>
-                      </button>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!showBookingsList) fetchBookings();
+                            setShowBookingsList(!showBookingsList);
+                          }}
+                          className="px-3 py-1.5 bg-white hover:bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/30 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1 shadow-2xs"
+                          title="View saved bookings from this webhook"
+                        >
+                          <span>{showBookingsList ? 'Hide Bookings' : `📋 View Bookings (${savedBookings.length})`}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleTestBooking}
+                          disabled={isTestingBooking}
+                          className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center space-x-1 shadow-2xs shrink-0"
+                        >
+                          <span>{isTestingBooking ? 'Testing...' : '📅 Test Booking'}</span>
+                        </button>
+                      </div>
                     </div>
                     {bookingResult && (
                       <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
                         {bookingResult}
                       </p>
+                    )}
+
+                    {/* Expandable Bookings Viewer */}
+                    {showBookingsList && (
+                      <div className="mt-3 p-4 bg-white rounded-xl border border-[#1F8A84]/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
+                            Saved Bookings &amp; Appointments ({savedBookings.length})
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={fetchBookings}
+                            disabled={isLoadingBookings}
+                            className="text-[11px] text-[#1F8A84] hover:underline font-semibold"
+                          >
+                            {isLoadingBookings ? 'Refreshing...' : '↻ Refresh'}
+                          </button>
+                        </div>
+                        {savedBookings.length === 0 ? (
+                          <p className="text-xs text-gray-500 italic py-2 text-center">
+                            No bookings recorded yet. Click &ldquo;📅 Test Booking&rdquo; above to record a test appointment.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            {savedBookings.map((b) => (
+                              <div
+                                key={b.id}
+                                className="p-3 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                              >
+                                <div>
+                                  <div className="font-bold text-[#0F3D3E] flex items-center space-x-2">
+                                    <span>{b.callerName}</span>
+                                    <span className="text-[11px] text-gray-500 font-mono font-normal">
+                                      {b.callerPhone}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-600 text-[11px] mt-0.5">
+                                    📅 {b.appointmentDate} at {b.appointmentTime} · {b.service}
+                                    {b.notes ? ` (${b.notes})` : ''}
+                                  </p>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0 self-start sm:self-auto">
+                                  ✓ Confirmed
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
