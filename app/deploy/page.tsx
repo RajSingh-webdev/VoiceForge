@@ -176,7 +176,7 @@ export default function DeployPage() {
               {deployment?.isSample && <SampleDataBadge />}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
-              Launch your voice assistant via direct shareable web links, website widgets, and inbound phone lines.
+              Launch your voice assistant via direct shareable web links and website widgets.
             </p>
           </div>
         </div>
@@ -219,7 +219,7 @@ export default function DeployPage() {
               <p className="text-xs sm:text-sm text-[#1F8A84] mt-1">
                 {deployment
                   ? 'Your assistant has been created and is ready to test.'
-                  : 'Create your assistant to unlock your share link, website widget, and phone options.'}
+                  : 'Create your assistant to unlock your share link and website widget.'}
               </p>
               {deployment && (
                 <details className="mt-2 text-xs text-gray-500">
@@ -296,7 +296,7 @@ export default function DeployPage() {
                 Deployment Channels
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Card 1: Share Link */}
                 <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col justify-between">
                   <div>
@@ -384,61 +384,6 @@ export default function DeployPage() {
                     </button>
                   </div>
                 </div>
-
-                {/* Card 3: Phone (simulated flow) */}
-                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                        📞
-                      </div>
-                      <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                        Not connected yet (Simulated)
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-[#0F3D3E] mb-1">
-                      Phone (simulated flow)
-                    </h3>
-                    <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-                      Connect a dedicated telecom phone number for 24/7 inbound patient calls.
-                    </p>
-
-                    {/* Placeholder Number with Sample Badge */}
-                    <div className="p-3 rounded-xl bg-[#E8F1EF]/60 border border-[#1F8A84]/25 text-center mb-4">
-                      <div className="text-base font-extrabold text-[#0F3D3E] tracking-wider font-mono">
-                        +1 (555) 019-8432
-                      </div>
-                      <span className="inline-block mt-1 text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                        Sample, not a real number
-                      </span>
-                    </div>
-
-                    {/* 3 Short Steps */}
-                    <div className="space-y-2 mb-4">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] block">
-                        How inbound calls work:
-                      </span>
-                      <ol className="text-xs text-gray-700 space-y-1.5 pl-4 list-decimal">
-                        <li>
-                          <strong>Assign a phone number:</strong> Link a Twilio or ElevenLabs telecom line to your agent.
-                        </li>
-                        <li>
-                          <strong>Route inbound audio:</strong> Inbound phone calls stream live voice audio directly to the ElevenLabs AI engine.
-                        </li>
-                        <li>
-                          <strong>Automate &amp; transfer:</strong> The agent answers inquiries using saved facts and transfers complex cases to human staff.
-                        </li>
-                      </ol>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-100 text-center">
-                    <p className="text-[10px] text-gray-500 italic">
-                      Not connected yet — no pretend calling. Live telephony connects with carrier API keys.
-                    </p>
-                  </div>
-                </div>
               </div>
 
               {/* Bulk Outbound Calling Campaign (Bonus Feature, Collapsed by Default) */}
@@ -515,24 +460,6 @@ export default function DeployPage() {
                         </p>
                         <p className="text-[11px] text-gray-600">
                           Snippet placeholder generated with active agent ID. Not connected to CDN script yet.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-300 shrink-0">
-                      Not connected yet
-                    </span>
-                  </div>
-
-                  {/* Item 4: Phone */}
-                  <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-gray-400 font-bold text-base">•</span>
-                      <div>
-                        <p className="text-xs font-bold text-[#0F3D3E]">
-                          Inbound Phone Line
-                        </p>
-                        <p className="text-[11px] text-gray-600">
-                          Simulated workflow displayed. Real telecom SIP trunking is not connected.
                         </p>
                       </div>
                     </div>

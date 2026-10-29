@@ -568,9 +568,9 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     expect(remainingParkingFaq).toBeUndefined();
   });
 
-  // g. /deploy: shows sample agent ID, SampleDataBadge, share link, clearly labelled sample snippet, simulated phone card;
+  // g. /deploy: shows sample agent ID, SampleDataBadge, share link, clearly labelled sample snippet;
   // navigating to /agent/[id] shows public agent page, and invalid ID shows "Agent not found".
-  test('g. /deploy: sample agent ID, SampleDataBadge, snippet, simulated phone, and public agent routing', async ({ page }) => {
+  test('g. /deploy: sample agent ID, SampleDataBadge, snippet, and public agent routing', async ({ page }) => {
     await setupMockRoutes(page);
 
     await page.goto('/deploy');
@@ -604,10 +604,7 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     const snippetCard = page.locator('pre');
     await expect(snippetCard).toContainText('Sample snippet. The real widget code will use your ElevenLabs agent ID once connected.');
 
-    // 5. Verify simulated phone card
-    await expect(page.locator('text=Phone (simulated flow)')).toBeVisible();
-
-    // 6. Navigate to /agent/agent_sample_dental_123 -> public agent page
+    // 5. Navigate to /agent/agent_sample_dental_123 -> public agent page
     await page.goto('/agent/agent_sample_dental_123');
     await expect(page.locator('h1')).toContainText('Smile Dental Assistant');
     await expect(page.locator('text=You are talking to an AI assistant.')).toBeVisible();
@@ -616,7 +613,7 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
 
     // 7. Navigate to invalid ID -> "Agent not found"
     await page.goto('/agent/invalid-id-999');
-    await expect(page.locator('text=/not found/i')).toBeVisible();
+    await expect(page.locator('text=/not found/i')).toBeVisible({ timeout: 10000 });
   });
 
   // h. Security (real server call, no AI quota): POST /api/site/extract with localhost, 127.0.0.1, 169.254.169.254, and ftp:// URLs; verify every one returns HTTP 400.

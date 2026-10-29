@@ -532,23 +532,13 @@ export default function ObservePage() {
           <div className="flex items-center space-x-2 shrink-0">
             <button
               type="button"
-              onClick={() => fetchConversations(isSampleData ? 'real' : 'sample')}
-              className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm"
-            >
-              {isSampleData
-                ? deployedAgentId
-                  ? '🔄 Load my real calls'
-                  : '🔄 Try with live calls'
-                : '📋 Switch to demo calls'}
-            </button>
-            <button
-              type="button"
-              onClick={() => fetchConversations(isSampleData ? undefined : undefined)}
-              className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm"
+              onClick={() => fetchConversations()}
+              className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm flex items-center space-x-1.5"
               aria-label="Refresh calls"
-              title="Refresh"
+              title="Refresh calls"
             >
-              ↻
+              <span>↻</span>
+              <span>Refresh</span>
             </button>
           </div>
         </div>
