@@ -100,6 +100,60 @@ export default function WritePage() {
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractedFacts, setExtractedFacts] = useState<ExtractedFacts | null>(null);
 
+  // Document upload state
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
+  const [docUploadError, setDocUploadError] = useState<string | null>(null);
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDoc(true);
+    setDocUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/knowledge/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload document.');
+      }
+
+      if (data.document && config) {
+        const currentDocs = config.knowledgeBaseDocuments || [];
+        setConfig({
+          ...config,
+          knowledgeBaseDocuments: [...currentDocs, data.document],
+        });
+      }
+    } catch (err: any) {
+      setDocUploadError(err.message || 'Error uploading document.');
+    } finally {
+      setIsUploadingDoc(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveDoc = async (docId: string) => {
+    if (!config) return;
+    try {
+      await fetch('/api/knowledge/upload?id=' + encodeURIComponent(docId), { method: 'DELETE' });
+    } catch {
+      // Fallback
+    }
+    const currentDocs = config.knowledgeBaseDocuments || [];
+    setConfig({
+      ...config,
+      knowledgeBaseDocuments: currentDocs.filter((d) => d.id !== docId),
+    });
+  };
+
   const charCount = description.length;
   const isTooLong = charCount > MAX_CHAR_COUNT;
   const isEmpty = description.trim().length === 0;
@@ -1283,6 +1337,23 @@ export default function WritePage() {
                   onChange={(e) => updateConfigField('voiceSuggestion', e.target.value)}
                   className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                 />
+
+                <div className="pt-3 border-t border-gray-100 mt-3">
+                  <label className="flex items-center space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!config.expressiveMode}
+                      onChange={(e) => updateConfigField('expressiveMode', e.target.checked)}
+                      className="w-4 h-4 text-[#1F8A84] rounded border-gray-300 focus:ring-[#1F8A84]"
+                    />
+                    <span className="text-xs font-bold text-[#0F3D3E]">
+                      Enable Expressive Voice Delivery
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-gray-500 mt-1 ml-6.5">
+                    Modulates vocal delivery with enhanced expressiveness and natural pause dynamics.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1458,6 +1529,83 @@ export default function WritePage() {
                 </div>
               </div>
             )}
+
+            {/* 8. Knowledge Base Documents (PDF, TXT, DOCX) */}
+            <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-[#0F3D3E]">
+                    Knowledge Base Documents (PDF, TXT, DOCX)
+                  </h3>
+                  <p className="text-xs text-[#1F8A84]">
+                    Upload clinic manuals, policy documents, or pricing sheets directly to your agent.
+                  </p>
+                </div>
+                <label className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer inline-flex items-center space-x-1.5 shrink-0">
+                  <span>📎 Upload Document</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.docx,.doc,.md"
+                    onChange={handleDocumentUpload}
+                    disabled={isUploadingDoc}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {isUploadingDoc && (
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-800 flex items-center space-x-2 mb-3">
+                  <svg className="animate-spin h-4 w-4 text-teal-700" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span>Uploading document to ElevenLabs Knowledge Base...</span>
+                </div>
+              )}
+
+              {docUploadError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 mb-3 flex items-center justify-between">
+                  <span>⚠️ {docUploadError}</span>
+                  <button onClick={() => setDocUploadError(null)} className="font-bold">✕</button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {Array.isArray(config.knowledgeBaseDocuments) &&
+                  config.knowledgeBaseDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 flex items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-2.5">
+                        <span className="text-lg">📄</span>
+                        <div>
+                          <p className="text-xs font-bold text-[#0F3D3E]">{doc.name}</p>
+                          <p className="text-[10px] text-gray-500">
+                            {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : 'Document'} · Synced with ElevenLabs Knowledge Base
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDoc(doc.id)}
+                        className="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1 rounded hover:bg-rose-50"
+                        title="Remove document"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+
+                {(!config.knowledgeBaseDocuments || config.knowledgeBaseDocuments.length === 0) && (
+                  <div className="p-6 text-center border-2 border-dashed border-gray-200 rounded-xl">
+                    <p className="text-xs text-gray-500">
+                      No documents uploaded yet. Upload PDFs or policies to automatically power your agent with RAG.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
       )}

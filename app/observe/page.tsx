@@ -75,6 +75,8 @@ export default function ObservePage() {
   const [selectedCall, setSelectedCall] = useState<Conversation | null>(null);
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSampleData, setIsSampleData] = useState<boolean>(true);
+  const [totalRealCalls, setTotalRealCalls] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Analysis state
@@ -118,16 +120,19 @@ export default function ObservePage() {
     }
   }, []);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (sourceOverride?: 'real' | 'sample') => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await fetch('/api/conversations');
+      const url = sourceOverride ? `/api/conversations?source=${sourceOverride}` : '/api/conversations';
+      const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to load call conversations.');
       }
       setConversations(data.conversations || []);
+      setIsSampleData(data.isSample !== false);
+      setTotalRealCalls(typeof data.totalReal === 'number' ? data.totalReal : 0);
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred while fetching calls.');
     } finally {
@@ -139,8 +144,8 @@ export default function ObservePage() {
     fetchConversations();
   }, []);
 
-  // Reset analysis when selected call changes
-  const handleSelectCall = (call: Conversation) => {
+  // Reset analysis when selected call changes & fetch full transcript if missing
+  const handleSelectCall = async (call: Conversation) => {
     setSelectedCall(call);
     setAnalysisResult(null);
     setAnalysisError(null);
@@ -148,6 +153,28 @@ export default function ObservePage() {
     // If there's an existing fix for this call in history, find the most recent
     const matchingFix = fixHistory.find((f) => f.callId === call.id);
     setLastAppliedFix(matchingFix || null);
+
+    // If call has empty transcript (e.g. real ElevenLabs conversation), fetch details
+    if (!call.transcript || call.transcript.length === 0) {
+      try {
+        const res = await fetch(`/api/conversations?id=${encodeURIComponent(call.id)}`);
+        const data = await res.json();
+        if (data?.conversation?.transcript) {
+          setSelectedCall((prev) =>
+            prev && prev.id === call.id
+              ? { ...prev, transcript: data.conversation.transcript }
+              : prev
+          );
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === call.id ? { ...c, transcript: data.conversation.transcript } : c
+            )
+          );
+        }
+      } catch {
+        // Fallback
+      }
+    }
   };
 
   // Analyze the selected call
@@ -408,7 +435,14 @@ export default function ObservePage() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
                 Observe & Analytics
               </h1>
-              <SampleDataBadge />
+              {isSampleData ? (
+                <SampleDataBadge />
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Live ElevenLabs Calls</span>
+                </span>
+              )}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
               Review conversation outcomes, customer inquiries, AI performance, and apply one-click fixes.
@@ -416,13 +450,22 @@ export default function ObservePage() {
           </div>
         </div>
 
-        {/* Visible Note required by specification */}
-        <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex items-start space-x-3">
-          <span className="text-[#1F8A84] text-base font-bold shrink-0">ℹ️</span>
-          <p className="text-xs sm:text-sm text-[#0F3D3E] font-medium leading-relaxed">
-            Sample data. Real calls will appear here once ElevenLabs is connected.
-          </p>
-        </div>
+        {/* Status Note */}
+        {isSampleData ? (
+          <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex items-start space-x-3">
+            <span className="text-[#1F8A84] text-base font-bold shrink-0">ℹ️</span>
+            <p className="text-xs sm:text-sm text-[#0F3D3E] font-medium leading-relaxed">
+              Sample data. Real calls will appear here once ElevenLabs is connected.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-300 flex items-start space-x-3">
+            <span className="text-emerald-700 text-base font-bold shrink-0">✓</span>
+            <p className="text-xs sm:text-sm text-emerald-900 font-medium leading-relaxed">
+              Showing live calls directly from your ElevenLabs workspace.
+            </p>
+          </div>
+        )}
       </header>
 
       {/* Undo confirmation banner */}
@@ -478,7 +521,7 @@ export default function ObservePage() {
           </div>
           <button
             type="button"
-            onClick={fetchConversations}
+            onClick={() => fetchConversations()}
             className="px-3 py-1.5 bg-red-800 text-white rounded-lg text-xs font-semibold hover:bg-red-900 transition-colors"
           >
             Retry

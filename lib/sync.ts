@@ -24,7 +24,11 @@ export function computeConfigHash(config: AgentConfig | null | undefined): strin
     voiceSuggestion: config.voiceSuggestion || '',
     voiceId: config.voiceId || '',
     voiceName: config.voiceName || '',
+    expressiveMode: !!config.expressiveMode,
     guardrails: Array.isArray(config.guardrails) ? [...config.guardrails] : [],
+    knowledgeBaseDocuments: Array.isArray(config.knowledgeBaseDocuments)
+      ? config.knowledgeBaseDocuments.map((d) => ({ id: d.id, name: d.name }))
+      : [],
     knowledge: config.knowledge
       ? {
           business_name: config.knowledge.business_name || '',

@@ -23,6 +23,11 @@ export default function DeployPage() {
   const [copiedSnippet, setCopiedSnippet] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
 
+  // Booking Webhook state
+  const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
+  const [webhookTestResult, setWebhookTestResult] = useState<any>(null);
+  const [webhookError, setWebhookError] = useState<string | null>(null);
+
   // Read stored deployment and creation count on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -108,8 +113,41 @@ export default function DeployPage() {
   const shareUrl = deployment ? `${origin}/agent/${deployment.agentId}` : '';
 
   const widgetSnippet = deployment
-    ? `<!-- VoiceForge Voice Assistant Widget (Not connected yet) -->\n<!-- Sample snippet. The real widget code will use your ElevenLabs agent ID once connected. -->\n<div id="voiceforge-agent" data-agent-id="${deployment.agentId}"></div>\n<!-- Official widget script will be provided upon ElevenLabs connection -->`
+    ? deployment.isSample
+      ? `<!-- VoiceForge Voice Assistant Widget (Not connected yet) -->\n<!-- Sample snippet. The real widget code will use your ElevenLabs agent ID once connected. -->\n<div id="voiceforge-agent" data-agent-id="${deployment.agentId}"></div>\n<!-- Official widget script will be provided upon ElevenLabs connection -->`
+      : `<!-- VoiceForge Live ElevenLabs Web Widget -->\n<elevenlabs-convai agent-id="${deployment.agentId}"></elevenlabs-convai>\n<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>\n\n<!-- Responsive Embed Iframe -->\n<iframe src="${origin}/agent/${deployment.agentId}?embed=true" width="100%" height="650" frameborder="0" allow="microphone"></iframe>`
     : '';
+
+  const handleTestWebhook = async () => {
+    setIsTestingWebhook(true);
+    setWebhookError(null);
+    setWebhookTestResult(null);
+
+    try {
+      const res = await fetch('/api/webhooks/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callerName: 'Sarah Jenkins (Test Caller)',
+          callerPhone: '+1-555-0143',
+          appointmentDate: '2026-11-05',
+          appointmentTime: '10:00 AM',
+          service: 'Routine Dental Cleaning',
+          notes: 'Test booking dispatched from VoiceForge Deploy console',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to dispatch test booking webhook.');
+      }
+      setWebhookTestResult(data);
+    } catch (err: any) {
+      setWebhookError(err.message || 'Webhook test failed.');
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
 
   const handleCopyLink = () => {
     if (!shareUrl) return;
@@ -481,6 +519,79 @@ export default function DeployPage() {
                       Not connected yet
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Booking Webhook Integration Card */}
+              <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
+                      📅
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-[#0F3D3E]">
+                        Inbound Booking Webhook Integration
+                      </h3>
+                      <p className="text-xs text-[#1F8A84]">
+                        Receive confirmed appointment bookings from your voice assistant into your clinic CRM or calendar.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTestWebhook}
+                    disabled={isTestingWebhook}
+                    className="px-4 py-2 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shrink-0 disabled:opacity-50"
+                  >
+                    {isTestingWebhook ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        <span>Testing Webhook...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>⚡</span>
+                        <span>Send Test Booking</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
+                      Webhook Target URL
+                    </label>
+                    <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 font-mono text-xs text-[#0F3D3E] break-all select-all">
+                      {`${origin}/api/webhooks/booking`}
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500">
+                    Authenticate requests by passing your secret in the <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800">x-webhook-secret</code> HTTP header.
+                  </p>
+
+                  {webhookError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                      ⚠️ {webhookError}
+                    </div>
+                  )}
+
+                  {webhookTestResult && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+                      <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-900">
+                        <span>✓</span>
+                        <span>Webhook Response: Appointment Confirmed</span>
+                      </div>
+                      <pre className="p-2 rounded bg-white text-[10px] text-emerald-900 font-mono overflow-x-auto border border-emerald-200">
+                        {JSON.stringify(webhookTestResult, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -30,6 +30,22 @@ export interface ExtractedFacts {
   not_found: string[];
 }
 
+export interface KnowledgeBaseDoc {
+  id: string;
+  name: string;
+  type?: 'file' | 'url' | 'text';
+  size?: number;
+  mimeType?: string;
+  createdAt?: string;
+}
+
+export interface VoiceSettings {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  use_speaker_boost?: boolean;
+}
+
 export interface AgentConfig {
   name: string;
   persona: string;
@@ -41,9 +57,12 @@ export interface AgentConfig {
   voiceSuggestion: string;
   voiceId?: string;
   voiceName?: string;
+  voiceSettings?: VoiceSettings;
+  expressiveMode?: boolean;
   guardrails: string[];
   tools: ProposedTool[];
   knowledge?: ExtractedFacts;
+  knowledgeBaseDocuments?: KnowledgeBaseDoc[];
 }
 
 export type ConversationOutcome = 'Booked' | 'Resolved' | 'Flagged' | 'Transferred to human';
@@ -62,6 +81,7 @@ export interface Conversation {
   outcome: ConversationOutcome;
   summary: string;
   transcript: ConversationTurn[];
+  isSample?: boolean;
 }
 
 export type FixType = 'knowledge' | 'guardrail' | 'flow_step';
@@ -144,4 +164,52 @@ export function isValidAgentConfig(data: any): data is AgentConfig {
     Array.isArray(data.guardrails) &&
     Array.isArray(data.tools)
   );
+}
+
+export interface CallerProfile {
+  id: string;
+  phone?: string;
+  name: string;
+  callCount: number;
+  lastCallDate: string;
+  notes: string[];
+  preferredLanguage?: string;
+}
+
+export interface BookingRecord {
+  id: string;
+  callerName: string;
+  callerPhone: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  service: string;
+  status: 'confirmed' | 'pending' | 'cancelled';
+  createdAt: string;
+  notes?: string;
+}
+
+export interface SimulatedCallerScenario {
+  id: string;
+  title: string;
+  persona: string;
+  callerGoal: string;
+  stressFactor: 'anger' | 'confusion' | 'emergency' | 'jailbreak' | 'hindi_switch';
+  description: string;
+}
+
+export interface SimulationTurn {
+  role: 'caller' | 'agent';
+  message: string;
+}
+
+export interface SimulationReport {
+  scenarioId: string;
+  scenarioTitle: string;
+  passed: boolean;
+  score: number; // 0 - 100
+  aiDisclosed: boolean;
+  guardrailsRespected: boolean;
+  handledAppropriately: boolean;
+  findings: string[];
+  turns: SimulationTurn[];
 }

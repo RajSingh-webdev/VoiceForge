@@ -1,4 +1,4 @@
-import { Conversation, AgentConfig, VoiceItem } from './types';
+import { Conversation, AgentConfig, VoiceItem, KnowledgeBaseDoc } from './types';
 
 function ensureServerSide() {
   if (typeof window !== 'undefined') {
@@ -521,6 +521,29 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     },
     asr: asrConfig,
   };
+
+  // Attach Knowledge Base documents if configured
+  if (
+    Array.isArray(config.knowledgeBaseDocuments) &&
+    config.knowledgeBaseDocuments.length > 0
+  ) {
+    conversationConfig.agent.prompt.knowledge_base = config.knowledgeBaseDocuments.map(
+      (doc) => ({
+        type: doc.type || 'file',
+        id: doc.id,
+        name: doc.name,
+        usage_mode: 'auto',
+      })
+    );
+  }
+
+  // Support expressive voice mode and voice settings
+  if (config.expressiveMode || config.voiceSettings) {
+    conversationConfig.tts.voice_settings = {
+      stability: config.voiceSettings?.stability ?? (config.expressiveMode ? 0.35 : 0.65),
+      similarity_boost: config.voiceSettings?.similarity_boost ?? 0.8,
+    };
+  }
 
   if (hasHindi && Object.keys(languagePresets).length > 0) {
     conversationConfig.language_presets = languagePresets;
@@ -1085,7 +1108,298 @@ export async function listVoices(): Promise<VoiceItem[]> {
   }
 }
 
-export async function listConversations(): Promise<Conversation[]> {
-  checkMockMode();
-  return SAMPLE_CONVERSATIONS;
+export async function listConversations(options?: {
+  agentId?: string;
+  source?: 'real' | 'sample';
+}): Promise<{ conversations: Conversation[]; isSample: boolean; totalReal: number }> {
+  ensureServerSide();
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+
+  if (!isReal || options?.source === 'sample') {
+    return {
+      conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
+      isSample: true,
+      totalReal: 0,
+    };
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    return {
+      conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
+      isSample: true,
+      totalReal: 0,
+    };
+  }
+
+  try {
+    const url = new URL('https://api.elevenlabs.io/v1/convai/conversations');
+    if (options?.agentId) {
+      url.searchParams.set('agent_id', options.agentId.trim());
+    }
+    url.searchParams.set('sort_direction', 'desc');
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+    });
+
+    if (!res.ok) {
+      return {
+        conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
+        isSample: true,
+        totalReal: 0,
+      };
+    }
+
+    const data = await res.json();
+    const rawList = Array.isArray(data?.conversations) ? data.conversations : [];
+
+    if (rawList.length === 0) {
+      return {
+        conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
+        isSample: true,
+        totalReal: 0,
+      };
+    }
+
+    const mapped: Conversation[] = rawList.map((item: any) => {
+      const durationSecs = item.metadata?.call_duration_secs || 0;
+      const startTime = item.metadata?.start_time_unix_secs
+        ? new Date(item.metadata.start_time_unix_secs * 1000).toISOString()
+        : new Date().toISOString();
+
+      let outcome: any = 'Resolved';
+      if (item.metadata?.termination_reason === 'agent_hangup') {
+        outcome = 'Resolved';
+      } else if (item.status === 'failed') {
+        outcome = 'Flagged';
+      }
+
+      return {
+        id: item.conversation_id,
+        callerName: item.metadata?.caller_name || `Caller (${item.conversation_id.slice(-6)})`,
+        startTime,
+        duration: durationSecs,
+        language: 'English',
+        outcome,
+        summary: item.analysis?.call_summary || item.metadata?.termination_reason || 'Call recorded in ElevenLabs',
+        transcript: [],
+        isSample: false,
+      };
+    });
+
+    return {
+      conversations: mapped,
+      isSample: false,
+      totalReal: rawList.length,
+    };
+  } catch {
+    return {
+      conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
+      isSample: true,
+      totalReal: 0,
+    };
+  }
+}
+
+export async function getConversation(conversationId: string): Promise<Conversation> {
+  ensureServerSide();
+  const cleanId = (conversationId || '').trim();
+  const sample = SAMPLE_CONVERSATIONS.find((c) => c.id === cleanId);
+  if (sample) {
+    return { ...sample, isSample: true };
+  }
+
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  if (!isReal) {
+    throw new Error(`Conversation "${cleanId}" not found.`);
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(cleanId)}`,
+      {
+        headers: { 'xi-api-key': apiKey.trim() },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`ElevenLabs returned HTTP ${res.status} when looking up conversation.`);
+    }
+
+    const data = await res.json();
+    const transcript = Array.isArray(data.transcript)
+      ? data.transcript.map((t: any) => ({
+          role: t.role === 'user' ? 'caller' : 'agent',
+          text: t.message || '',
+        }))
+      : [];
+
+    return {
+      id: data.conversation_id || cleanId,
+      callerName: data.metadata?.caller_name || `Caller (${cleanId.slice(-6)})`,
+      startTime: data.metadata?.start_time_unix_secs
+        ? new Date(data.metadata.start_time_unix_secs * 1000).toISOString()
+        : new Date().toISOString(),
+      duration: data.metadata?.call_duration_secs || 0,
+      language: 'English',
+      outcome: data.status === 'failed' ? 'Flagged' : 'Resolved',
+      summary:
+        data.analysis?.call_summary ||
+        data.metadata?.termination_reason ||
+        'Call recorded in ElevenLabs',
+      transcript,
+      isSample: false,
+    };
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to retrieve conversation details.');
+  }
+}
+
+export async function uploadKnowledgeBaseFile(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<KnowledgeBaseDoc> {
+  ensureServerSide();
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+
+  if (!isReal) {
+    return {
+      id: `kb-doc-mock-${Date.now()}`,
+      name: fileName,
+      type: 'file',
+      size: fileBuffer.length,
+      mimeType,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', new Blob([new Uint8Array(fileBuffer)], { type: mimeType }), fileName);
+    formData.append('name', fileName);
+
+    const res = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/file', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      const detail =
+        errorData?.detail?.message || errorData?.detail || errorData?.message || '';
+      throw new Error(`Failed to upload document to ElevenLabs: ${detail || `HTTP ${res.status}`}`);
+    }
+
+    const data = await res.json();
+    return {
+      id: data.id || data.document_id,
+      name: fileName,
+      type: 'file',
+      size: fileBuffer.length,
+      mimeType,
+      createdAt: new Date().toISOString(),
+    };
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to upload knowledge base document.');
+  }
+}
+
+export async function deleteKnowledgeBaseDocument(documentId: string): Promise<boolean> {
+  ensureServerSide();
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+  if (!isReal) return true;
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/convai/knowledge-base/${encodeURIComponent(documentId)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'xi-api-key': apiKey.trim(),
+        },
+      }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`Failed to delete document from ElevenLabs: HTTP ${res.status}`);
+    }
+    return true;
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to delete knowledge base document.');
+  }
+}
+
+export async function transcribeAudio(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ text: string; language_code?: string }> {
+  ensureServerSide();
+  const isReal =
+    process.env.ELEVENLABS_REAL_AGENTS === 'true' ||
+    process.env.ELEVENLABS_REAL_VOICE === 'true';
+
+  if (!isReal) {
+    return {
+      text: 'Hello, this is a simulated transcription of the audio recording.',
+      language_code: 'en',
+    };
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', new Blob([new Uint8Array(fileBuffer)], { type: mimeType }), fileName);
+    formData.append('model_id', 'scribe_v1');
+
+    const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      const detail =
+        errorData?.detail?.message || errorData?.detail || errorData?.message || '';
+      throw new Error(`Failed to transcribe audio: ${detail || `HTTP ${res.status}`}`);
+    }
+
+    const data = await res.json();
+    return {
+      text: data.text || '',
+      language_code: data.language_code || 'en',
+    };
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to transcribe audio file.');
+  }
 }
