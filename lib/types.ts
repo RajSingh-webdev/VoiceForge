@@ -67,6 +67,7 @@ export interface AgentConfig {
   knowledge?: ExtractedFacts;
   knowledgeBaseDocuments?: KnowledgeBaseDoc[];
   transferPhoneNumber?: string;
+  bookingWebhookUrl?: string;
 }
 
 export type ConversationOutcome = 'Booked' | 'Resolved' | 'Flagged' | 'Transferred to human';

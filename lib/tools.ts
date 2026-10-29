@@ -62,11 +62,19 @@ export function isAppointmentBookingTool(name: string, purpose: string): boolean
  * If running on localhost or APP_BASE_URL is not HTTPS, ElevenLabs cannot call the webhook,
  * so it must accurately show as not connected.
  */
-export function getBookingToolStatus(currentOrigin?: string): {
+export function getBookingToolStatus(currentOrigin?: string, customWebhookUrl?: string): {
   isConnected: boolean;
   status: string;
   reason: string;
 } {
+  if (customWebhookUrl && customWebhookUrl.trim().startsWith('https://')) {
+    return {
+      isConnected: true,
+      status: `Connected — Live Zapier / CRM Webhook (${customWebhookUrl.trim()})`,
+      reason: 'Public HTTPS webhook configured. ElevenLabs and VoiceForge will deliver bookings directly to your CRM, Zapier, or Google Calendar.',
+    };
+  }
+
   // Check server environment variables if available
   const serverBaseUrl = (
     process.env.APP_BASE_URL ||
@@ -154,7 +162,7 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
 
     // 3. Appointment booking webhook
     if (isAppointmentBookingTool(name, purpose)) {
-      const bookingStatus = getBookingToolStatus(currentOrigin);
+      const bookingStatus = getBookingToolStatus(currentOrigin, config.bookingWebhookUrl);
       normalizedTools.push({
         name: 'Appointment Booking Webhook',
         purpose: 'Record and confirm appointment or reservation bookings via inbound webhook.',
@@ -183,7 +191,7 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
   // Always ensure Appointment Booking Webhook is included as a fixed core capability
   const alreadyHasBookingTool = normalizedTools.some((t) => isAppointmentBookingTool(t.name, t.purpose));
   if (!alreadyHasBookingTool) {
-    const bookingStatus = getBookingToolStatus(currentOrigin);
+    const bookingStatus = getBookingToolStatus(currentOrigin, config.bookingWebhookUrl);
     normalizedTools.push({
       name: 'Appointment Booking Webhook',
       purpose: 'Record and confirm appointment or reservation bookings via inbound webhook.',

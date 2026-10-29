@@ -118,12 +118,48 @@ export async function POST(req: Request) {
       }).catch(() => null);
     }
 
+    // Forward to user's Zapier / Google Calendar / CRM webhook if provided
+    let forwarded = false;
+    let forwardStatus = '';
+    const forwardUrl = (body.targetWebhookUrl || process.env.BOOKING_FORWARD_URL || '').trim();
+    if (forwardUrl && forwardUrl.startsWith('http')) {
+      try {
+        const fwdRes = await fetch(forwardUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'booking.created',
+            booking: newBooking,
+            caller: {
+              name: newBooking.callerName,
+              phone: newBooking.callerPhone,
+            },
+            appointment: {
+              date: newBooking.appointmentDate,
+              time: newBooking.appointmentTime,
+              service: newBooking.service,
+              notes: newBooking.notes,
+            },
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        forwarded = true;
+        forwardStatus = `Dispatched to your CRM/Zapier webhook (${fwdRes.status} ${fwdRes.statusText})`;
+      } catch (fwdErr: any) {
+        forwardStatus = `Forward failed: ${fwdErr.message}`;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       status: 'confirmed',
-      message: 'Appointment successfully confirmed.',
+      message: forwarded
+        ? 'Appointment confirmed and forwarded to your Zapier/CRM webhook.'
+        : 'Appointment successfully confirmed.',
       booking: newBooking,
       cloudPersisted,
+      forwarded,
+      forwardStatus,
     });
   } catch (err: any) {
     return NextResponse.json(

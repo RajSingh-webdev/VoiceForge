@@ -125,8 +125,9 @@ export default function DeployPage() {
           callerPhone: '+1-555-0143',
           appointmentDate: '2026-11-05',
           appointmentTime: '10:00 AM',
-          service: 'Routine Dental Cleaning',
+          service: 'General Service Consultation',
           notes: 'Test booking dispatched from VoiceForge Deploy console',
+          targetWebhookUrl: config?.bookingWebhookUrl || undefined,
         }),
       });
 
@@ -385,11 +386,18 @@ export default function DeployPage() {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
-                        Webhook Target URL
+                        Active Webhook Target URL
                       </label>
                       <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 font-mono text-xs text-[#0F3D3E] break-all select-all">
-                        {`${origin}/api/webhooks/booking`}
+                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('http')
+                          ? config.bookingWebhookUrl.trim()
+                          : `${origin}/api/webhooks/booking`}
                       </div>
+                      {config.bookingWebhookUrl && (
+                        <p className="text-[11px] text-emerald-800 mt-1 font-semibold">
+                          ✓ Confirmed bookings forward directly to your Zapier / Google Calendar / CRM webhook.
+                        </p>
+                      )}
                     </div>
 
                     <p className="text-[11px] text-gray-500">

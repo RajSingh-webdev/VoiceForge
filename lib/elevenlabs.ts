@@ -662,19 +662,27 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     conversationConfig.language_presets = languagePresets;
   }
 
-  // Connect real appointment booking tool if a public HTTPS URL is configured
+  // Connect real appointment booking tool if user provided a Zapier/CRM webhook OR public HTTPS URL is configured
+  const userWebhook =
+    config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
+      ? config.bookingWebhookUrl.trim()
+      : null;
+
   const appBaseUrl = (
     process.env.APP_BASE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
   ).replace(/\/$/, '');
 
-  if (appBaseUrl && appBaseUrl.startsWith('https://')) {
+  const effectiveWebhookUrl =
+    userWebhook || (appBaseUrl && appBaseUrl.startsWith('https://') ? `${appBaseUrl}/api/webhooks/booking` : null);
+
+  if (effectiveWebhookUrl) {
     const webhookSecret = process.env.BOOKING_WEBHOOK_SECRET?.trim();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (webhookSecret) {
+    if (webhookSecret && !userWebhook) {
       headers['x-webhook-secret'] = webhookSecret;
     }
 

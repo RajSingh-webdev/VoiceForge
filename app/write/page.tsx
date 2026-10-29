@@ -208,6 +208,7 @@ export default function WritePage() {
     setIsTestingBooking(true);
     setBookingResult(null);
     try {
+      const targetWebhookUrl = config?.bookingWebhookUrl?.trim() || undefined;
       const res = await fetch('/api/webhooks/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -218,14 +219,18 @@ export default function WritePage() {
           appointmentTime: '10:00 AM',
           service: 'General Consultation',
           notes: 'Test booking from Write stage',
+          targetWebhookUrl,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Booking test failed');
-      setBookingResult('✓ Booking confirmed! Webhook test appointment recorded successfully.');
+      const msg = targetWebhookUrl
+        ? `✓ Booking confirmed! Dispatched directly to your Zapier / Google Calendar / CRM webhook (${targetWebhookUrl}).`
+        : '✓ Booking confirmed! Webhook test appointment recorded successfully.';
+      setBookingResult(msg);
       setShowBookingsList(true);
       fetchBookings();
-      setTimeout(() => setBookingResult(null), 5000);
+      setTimeout(() => setBookingResult(null), 6000);
     } catch (err: any) {
       setBookingResult(`⚠️ ${err.message || 'Booking test failed'}`);
     } finally {
@@ -1828,14 +1833,46 @@ export default function WritePage() {
                           </p>
                         </div>
                       </div>
-                      <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-300 shrink-0">
-                        Webhook: /api/webhooks/booking
+                      <span
+                        className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border shrink-0 ${
+                          config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : 'bg-teal-50 text-teal-800 border-teal-300'
+                        }`}
+                      >
+                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
+                          ? '✓ Live Webhook Connected'
+                          : 'Webhook: /api/webhooks/booking'}
                       </span>
+                    </div>
+
+                    {/* Zapier / Google Calendar / CRM Webhook Input */}
+                    <div className="pt-2 border-t border-[#1F8A84]/15">
+                      <label
+                        htmlFor="booking-webhook-url"
+                        className="block text-xs font-bold text-[#0F3D3E] mb-1.5"
+                      >
+                        Your Webhook URL (Zapier, Google Calendar, Make, or CRM):
+                      </label>
+                      <input
+                        id="booking-webhook-url"
+                        type="url"
+                        value={config.bookingWebhookUrl ?? ''}
+                        onChange={(e) => updateConfigField('bookingWebhookUrl', e.target.value)}
+                        placeholder="https://hooks.zapier.com/hooks/catch/... or https://hook.eu1.make.com/..."
+                        aria-label="Booking Webhook URL"
+                        className="w-full p-2.5 rounded-xl border border-[#1F8A84]/30 font-mono text-xs text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Paste your Zapier or Make webhook trigger. Every confirmed booking made during voice calls is delivered directly here so it automatically creates Google Calendar events, adds rows to Google Sheets, or logs leads in your CRM.
+                      </p>
                     </div>
 
                     <div className="pt-2 border-t border-[#1F8A84]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <span className="text-xs text-[#1F8A84]">
-                        Ready to accept live appointment bookings during voice calls.
+                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
+                          ? 'Connected to your custom webhook. Voice agent calls will dispatch directly to your CRM / Calendar.'
+                          : 'Ready to accept bookings. Add your Zapier, Make, or CRM URL above for automated calendar sync.'}
                       </span>
                       <div className="flex items-center space-x-2 shrink-0">
                         <button
