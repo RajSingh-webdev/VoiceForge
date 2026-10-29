@@ -49,7 +49,7 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-const MAX_CHAR_COUNT = 1200;
+const MAX_CHAR_COUNT = 10000;
 
 function checkAiDisclosure(text: string): boolean {
   const lower = text.toLowerCase();

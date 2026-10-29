@@ -155,10 +155,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (description.length > 1200) {
+  if (description.length > 10000) {
     return NextResponse.json(
       {
-        error: `Description is too long (${description.length} characters). Maximum allowed is 1,200 characters.`,
+        error: `Description is too long (${description.length} characters). Maximum allowed is 10,000 characters.`,
       },
       { status: 400 }
     );

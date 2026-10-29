@@ -156,6 +156,18 @@ function setupMockRoutes(page: any) {
       }),
     });
   });
+
+  // Mock /api/agents/wrong-id (for 404 test without consuming quota)
+  page.route('**/api/agents/wrong-id', async (route: any) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        agent: null,
+        found: false,
+      }),
+    });
+  });
 }
 
 test.describe('Group A - Smoke Tests (No AI Quota)', () => {
@@ -234,12 +246,12 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
 
     // 2. Character counter and limit
     await textarea.fill('Short test description.');
-    await expect(counter).toContainText(`${'Short test description.'.length} / 1200 characters`);
+    await expect(counter).toContainText(`${'Short test description.'.length} / 10000 characters`);
 
-    // Exceed limit (1201 characters)
-    const longText = 'a'.repeat(1205);
+    // Exceed limit (10001 characters)
+    const longText = 'a'.repeat(10005);
     await textarea.fill(longText);
-    await expect(counter).toContainText('1205 / 1200 characters');
+    await expect(counter).toContainText('10005 / 10000 characters');
     await expect(page.locator('text=Description exceeds maximum limit')).toBeVisible();
 
     const generateBtn = page.locator('button:has-text("Generate my AI assistant")');
