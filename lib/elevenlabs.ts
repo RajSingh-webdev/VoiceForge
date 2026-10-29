@@ -517,17 +517,15 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       (l) => (l || '').toLowerCase().includes('english') || (l || '').toLowerCase() === 'en'
     );
 
-  // If user explicitly listed Hindi first, only Hindi, or selected an Indian Hindi voice as primary:
+  // Opening language is determined by which language is placed first in config.languages:
+  // e.g. ['Hindi', 'English'] -> Hindi opening; ['English', 'Hindi'] -> English opening.
+  // If only Hindi is provided, Hindi is primary.
   const isHindiPrimary =
     hasHindi &&
-    (config.languages.length === 1 ||
-      (config.languages[0] || '').toLowerCase().includes('hindi') ||
-      (config.languages[0] || '').toLowerCase() === 'hi' ||
-      config.voiceId === 'fTfuemKGBjYqG4ni4gw3' ||
-      config.voiceId === 'qdykssD3wAUvtIw9wG8N' ||
-      (config.voiceName || '').toLowerCase().includes('ritu') ||
-      (config.voiceName || '').toLowerCase().includes('sandeep') ||
-      (config.voiceName || '').toLowerCase().includes('hindi'));
+    (config.languages.length === 1
+      ? true
+      : (config.languages[0] || '').toLowerCase().includes('hindi') ||
+        (config.languages[0] || '').toLowerCase() === 'hi');
 
   let welcomeMessageHindi = '';
   const languagePresets: Record<string, any> = {};

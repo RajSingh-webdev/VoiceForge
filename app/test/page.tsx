@@ -267,25 +267,16 @@ function TestConversationInner() {
 
   // Compute whether Hindi is the primary opening language
   const isHindiPrimary = Boolean(
-    draftConfig?.languages?.some(
-      (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
-    ) &&
-    (draftConfig?.languages?.length === 1 ||
-      (draftConfig?.languages?.[0] || '').toLowerCase().includes('hindi') ||
-      (draftConfig?.languages?.[0] || '').toLowerCase() === 'hi' ||
-      draftConfig?.voiceId === 'fTfuemKGBjYqG4ni4gw3' ||
-      draftConfig?.voiceId === 'qdykssD3wAUvtIw9wG8N' ||
-      (draftConfig?.voiceName || '').toLowerCase().includes('ritu') ||
-      (draftConfig?.voiceName || '').toLowerCase().includes('sandeep') ||
-      (draftConfig?.voiceName || '').toLowerCase().includes('hindi'))
+    (draftConfig?.languages?.[0] || '').toLowerCase().includes('hindi') ||
+    (draftConfig?.languages?.[0] || '').toLowerCase() === 'hi'
   );
 
   const activeGreetingEnglish =
     draftConfig?.welcomeMessage ||
-    'Hello, thank you for calling Smile Dental Clinic. I am an AI assistant. How may I help you today?';
+    'Hello, thank you for calling. I am an AI assistant. How may I help you today?';
   const activeGreetingHindi =
     draftConfig?.welcomeMessageHindi ||
-    'नमस्ते! मैं स्माइल डेंटल क्लिनिक की AI रिसेप्शनिस्ट हूँ। आज मैं आपकी क्या मदद कर सकती हूँ?';
+    'नमस्ते! मैं एक AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?';
 
   const handleSetLanguagePrimary = (lang: 'hi' | 'en') => {
     if (!draftConfig) return;
@@ -294,22 +285,14 @@ function TestConversationInner() {
       updated = {
         ...draftConfig,
         languages: ['Hindi', 'English'],
-        voiceId: 'fTfuemKGBjYqG4ni4gw3',
-        voiceName: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
-        voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
-        voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
       };
-      addEvent('Language Mode', 'Set call opening language to Hindi (Ritu Rathore)');
+      addEvent('Language Mode', 'Set call opening language to Hindi');
     } else {
       updated = {
         ...draftConfig,
         languages: ['English', 'Hindi'],
-        voiceId: '21m00Tcm4TlvDq8ikWAM',
-        voiceName: 'Rachel (Default)',
-        voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
-        voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
       };
-      addEvent('Language Mode', 'Set call opening language to English (Rachel)');
+      addEvent('Language Mode', 'Set call opening language to English');
     }
     setDraftConfig(updated);
     if (typeof window !== 'undefined') {
