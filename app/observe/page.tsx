@@ -129,6 +129,16 @@ export default function ObservePage() {
           if (parsed.agentId) {
             setDeployedAgentId(parsed.agentId);
           }
+        } else {
+          // Check if there is an active session / handmade agent
+          fetch('/api/voice/session')
+            .then((r) => r.json())
+            .then((d) => {
+              if (d?.handMadeAgentId) {
+                setDeployedAgentId(d.handMadeAgentId);
+              }
+            })
+            .catch(() => {});
         }
       } catch {
         // Fallback

@@ -1024,7 +1024,7 @@ export default function WritePage() {
                   <span>Generating your assistant...</span>
                 </>
               ) : (
-                <span>Generate my AI assistant</span>
+                <span>Create my assistant</span>
               )}
             </button>
 

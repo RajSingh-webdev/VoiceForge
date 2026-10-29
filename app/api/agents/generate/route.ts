@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callLLM } from '@/lib/llm';
 import { AgentConfig, FlowStep, ProposedTool, ExtractedFacts } from '@/lib/types';
+import { enforceHindiAiDisclosure } from '@/lib/elevenlabs';
 
 export const maxDuration = 60;
 
@@ -97,6 +98,11 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
     : `Hi! I am the AI assistant for ${name}. How can I help you today?`;
   welcomeMessage = enforceAiDisclosure(welcomeMessage, name);
 
+  let welcomeMessageHindi = typeof data.welcomeMessageHindi === 'string' && data.welcomeMessageHindi.trim()
+    ? data.welcomeMessageHindi.trim()
+    : `नमस्ते! मैं ${name} की AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकती हूँ?`;
+  welcomeMessageHindi = enforceHindiAiDisclosure(welcomeMessageHindi, name);
+
   let languages: string[] = Array.isArray(data.languages)
     ? data.languages.filter((l: any) => typeof l === 'string' && l.trim()).map((l: string) => l.trim())
     : [];
@@ -148,6 +154,7 @@ function validateAndNormalizeConfig(data: any, facts?: ExtractedFacts): AgentCon
     goals,
     flowSteps,
     welcomeMessage,
+    welcomeMessageHindi,
     languages,
     voiceSuggestion,
     guardrails,
@@ -245,6 +252,7 @@ JSON Schema:
     }
   ],
   "welcomeMessage": "string (opening greeting clearly identifying as AI)",
+  "welcomeMessageHindi": "string (warm Hindi greeting in Devanagari identifying as AI सहायक)",
   "languages": ["English", "Hindi"],
   "voiceSuggestion": "string (plain description of recommended vocal characteristics)",
   "guardrails": ["string (safety boundary or rule 1)", "string (rule 2)"],

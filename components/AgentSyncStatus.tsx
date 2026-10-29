@@ -94,10 +94,22 @@ export default function AgentSyncStatus({
   const handleUpdateLiveAgent = async () => {
     if (!config || !deployment || isUpdating) return;
 
-    const confirmed = window.confirm(
-      'Are you sure you want to update the live ElevenLabs agent with your latest saved configuration?'
-    );
-    if (!confirmed) return;
+    // Prevent updating the wrong agent if names do not match
+    if (
+      deployment.name &&
+      config.name &&
+      deployment.name.trim().toLowerCase() !== config.name.trim().toLowerCase()
+    ) {
+      const confirmedMismatch = window.confirm(
+        `Warning: Your current draft configuration is for "${config.name}", but the live agent is "${deployment.name}" (${deployment.agentId}).\n\nDo you want to overwrite "${deployment.name}" with your changes for "${config.name}"?`
+      );
+      if (!confirmedMismatch) return;
+    } else {
+      const confirmed = window.confirm(
+        'Publish your latest saved edits to the live ElevenLabs assistant?'
+      );
+      if (!confirmed) return;
+    }
 
     setIsUpdating(true);
     setErrorMessage(null);
@@ -164,8 +176,8 @@ export default function AgentSyncStatus({
             <div className="flex items-center space-x-2 flex-wrap">
               <span className="font-bold text-sm">
                 {isInSync
-                  ? 'In sync with the live agent'
-                  : 'Saved setup has changes not yet sent to the live agent'}
+                  ? 'Published — your assistant is up to date.'
+                  : "Unpublished changes — your recent edits aren't live yet."}
               </span>
               <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-white/70 border border-current opacity-80">
                 {deployment.agentId}
@@ -174,9 +186,9 @@ export default function AgentSyncStatus({
             <p className="text-xs opacity-80 mt-0.5">
               {isInSync
                 ? lastSyncedTime
-                  ? `Last synced at ${lastSyncedTime}. Your live agent in ElevenLabs matches the saved setup.`
-                  : 'Your live agent in ElevenLabs matches the saved setup.'
-                : 'Modifications made in VoiceForge have not been synced to your ElevenLabs assistant yet.'}
+                  ? `Last published at ${lastSyncedTime}. Your live assistant in ElevenLabs matches the saved setup.`
+                  : 'Your live assistant in ElevenLabs matches the saved setup.'
+                : 'Modifications made in VoiceForge have not been sent to your ElevenLabs assistant yet.'}
             </p>
           </div>
         </div>
@@ -225,10 +237,10 @@ export default function AgentSyncStatus({
                     d="M4 12a8 8 0 018-8v8H4z"
                   ></path>
                 </svg>
-                <span>Updating live agent...</span>
+                <span>Publishing changes…</span>
               </>
             ) : (
-              <span>Update live agent</span>
+              <span>Publish changes</span>
             )}
           </button>
         </div>
@@ -238,7 +250,10 @@ export default function AgentSyncStatus({
       {errorMessage && (
         <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-start space-x-2">
           <span className="font-bold shrink-0">⚠️</span>
-          <span>{errorMessage}</span>
+          <div>
+            <p className="font-bold">Couldn&apos;t publish changes. Please try again.</p>
+            <p className="mt-0.5">{errorMessage}</p>
+          </div>
         </div>
       )}
 
@@ -247,7 +262,7 @@ export default function AgentSyncStatus({
         <div className="mt-3 p-2.5 rounded-lg bg-emerald-100/60 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span>✅</span>
-            <span>Successfully updated live agent at {successInfo.time}.</span>
+            <span>Successfully published changes to live assistant at {successInfo.time}.</span>
           </div>
           <Link
             href="/test?source=deployed"

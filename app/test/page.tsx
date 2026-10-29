@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
+import SimulatedCallersPanel from '@/components/SimulatedCallersPanel';
 import { AgentDeployment, AgentConfig } from '@/lib/types';
 
 interface TranscriptItem {
@@ -554,6 +555,18 @@ function TestConversationInner() {
               )}
             </div>
           )}
+
+          {/* Real-time turn latency indicator */}
+          {latencies.length > 0 && (
+            <div className="flex items-center space-x-2 text-[11px] text-[#0F3D3E] bg-[#E8F1EF]/70 px-3 py-1 rounded-full border border-[#1F8A84]/20 mt-2 font-mono">
+              <span className="font-bold text-[#1F8A84]">⚡ Response Latency:</span>
+              <span>{latencies[latencies.length - 1]} ms</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-600">
+                Avg: {Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)} ms
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Test Call Opening Language Mode Selector */}
@@ -721,6 +734,27 @@ function TestConversationInner() {
           <div ref={transcriptEndRef} />
         </div>
       </div>
+
+      {/* Collapsible Test Scenarios & Stress Testing */}
+      <details className="bg-white p-5 rounded-2xl border border-[#1F8A84]/25 text-left text-xs group shadow-sm">
+        <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
+          <div className="flex items-center space-x-2">
+            <span className="text-base">🧪</span>
+            <span className="text-sm font-bold text-[#0F3D3E]">
+              Test Scenarios &amp; Stress Testing (Simulated Callers)
+            </span>
+            <span className="text-gray-400 font-normal hidden sm:inline">
+              — Test anger, medical emergency, elderly caller, jailbreak &amp; Hindi switch
+            </span>
+          </div>
+          <span className="text-xs text-[#1F8A84] font-semibold bg-[#E8F1EF] px-2.5 py-1 rounded-lg">
+            Show / Hide Scenarios
+          </span>
+        </summary>
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <SimulatedCallersPanel />
+        </div>
+      </details>
 
       {/* Collapsible Technical Diagnostics & Telemetry Log */}
       <details className="bg-white p-4 rounded-2xl border border-gray-200 text-left text-xs group">

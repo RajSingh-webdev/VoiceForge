@@ -302,9 +302,15 @@ export default function DeployPage() {
                     <h3 className="text-base font-bold text-[#0F3D3E] mb-1">
                       Direct Share Link
                     </h3>
-                    <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-                      Share this standalone link with patients or clients for quick browser-based interaction.
+                    <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                      Share this link with patients or clients for quick browser-based voice interaction.
                     </p>
+
+                    {(origin.includes('localhost') || origin.includes('127.0.0.1')) && (
+                      <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
+                        <strong>Local testing address:</strong> This link runs on your local computer ({origin}). When deployed to production, your public web domain will appear here for customers.
+                      </div>
+                    )}
 
                     <div className="p-2.5 rounded-lg bg-[#E8F1EF]/40 border border-[#1F8A84]/20 font-mono text-[11px] text-[#0F3D3E] break-all mb-4 select-all">
                       {shareUrl}
@@ -522,78 +528,86 @@ export default function DeployPage() {
                 </div>
               </div>
 
-              {/* Booking Webhook Integration Card */}
-              <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-gray-100">
+              {/* Optional Advanced Integration: Booking Webhook */}
+              <details className="bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm group">
+                <summary className="cursor-pointer select-none flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
                       📅
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-[#0F3D3E]">
-                        Inbound Booking Webhook Integration
+                        Advanced Integration: Inbound Booking Webhook
                       </h3>
                       <p className="text-xs text-[#1F8A84]">
                         Receive confirmed appointment bookings from your voice assistant into your clinic CRM or calendar.
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleTestWebhook}
-                    disabled={isTestingWebhook}
-                    className="px-4 py-2 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shrink-0 disabled:opacity-50"
-                  >
-                    {isTestingWebhook ? (
-                      <>
-                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        <span>Testing Webhook...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>⚡</span>
-                        <span>Send Test Booking</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                  <span className="text-xs text-[#1F8A84] font-semibold bg-[#E8F1EF] px-2.5 py-1 rounded-lg">
+                    Show / Hide Details
+                  </span>
+                </summary>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
-                      Webhook Target URL
-                    </label>
-                    <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 font-mono text-xs text-[#0F3D3E] break-all select-all">
-                      {`${origin}/api/webhooks/booking`}
-                    </div>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex justify-end mb-4">
+                    <button
+                      type="button"
+                      onClick={handleTestWebhook}
+                      disabled={isTestingWebhook}
+                      className="px-4 py-2 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shrink-0 disabled:opacity-50"
+                    >
+                      {isTestingWebhook ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          <span>Testing Webhook...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>⚡</span>
+                          <span>Send Test Booking</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
-                  <p className="text-[11px] text-gray-500">
-                    Authenticate requests by passing your secret in the <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800">x-webhook-secret</code> HTTP header.
-                  </p>
-
-                  {webhookError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                      ⚠️ {webhookError}
-                    </div>
-                  )}
-
-                  {webhookTestResult && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
-                      <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-900">
-                        <span>✓</span>
-                        <span>Webhook Response: Appointment Confirmed</span>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
+                        Webhook Target URL
+                      </label>
+                      <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 font-mono text-xs text-[#0F3D3E] break-all select-all">
+                        {`${origin}/api/webhooks/booking`}
                       </div>
-                      <pre className="p-2 rounded bg-white text-[10px] text-emerald-900 font-mono overflow-x-auto border border-emerald-200">
-                        {JSON.stringify(webhookTestResult, null, 2)}
-                      </pre>
                     </div>
-                  )}
+
+                    <p className="text-[11px] text-gray-500">
+                      Authenticate requests by passing your secret in the <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800">x-webhook-secret</code> HTTP header.
+                    </p>
+
+                    {webhookError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                        ⚠️ {webhookError}
+                      </div>
+                    )}
+
+                    {webhookTestResult && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+                        <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-900">
+                          <span>✓</span>
+                          <span>Webhook Response: Appointment Confirmed</span>
+                        </div>
+                        <pre className="p-2 rounded bg-white text-[10px] text-emerald-900 font-mono overflow-x-auto border border-emerald-200">
+                          {JSON.stringify(webhookTestResult, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </details>
             </div>
           )}
         </>

@@ -279,7 +279,7 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     await expect(counter).toContainText('10005 / 10000 characters');
     await expect(page.locator('text=Description exceeds maximum limit')).toBeVisible();
 
-    const generateBtn = page.locator('button:has-text("Generate my AI assistant")');
+    const generateBtn = page.locator('button:has-text("Create my assistant"), button:has-text("Generate my AI assistant")');
     await expect(generateBtn).toBeDisabled();
 
     // 3. Valid generation
