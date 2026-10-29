@@ -1767,7 +1767,7 @@ export default function WritePage() {
                               className="font-bold text-sm text-[#0F3D3E] bg-white px-2 py-1 rounded-md border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                             />
                             <p className="text-xs text-gray-600 mt-1">
-                              Collects patient name, date, and preferred time, and confirms bookings into your clinic CRM.
+                              Collects customer name, preferred date and time, and confirms appointment or reservation bookings into your calendar or CRM.
                             </p>
                           </div>
                         </div>

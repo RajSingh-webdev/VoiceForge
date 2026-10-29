@@ -683,19 +683,19 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         type: 'webhook',
         name: 'book_appointment',
         description:
-          'Record and confirm a patient appointment with the clinic. Call this tool when the patient provides their full name, phone number, preferred appointment date, and time.',
+          'Record and confirm an appointment, reservation, or booking. Call this tool when the customer provides their full name, phone number, preferred date, and time.',
         api_schema: {
           url: `${appBaseUrl}/api/webhooks/booking`,
           method: 'POST',
           request_body_schema: {
             type: 'object',
             properties: {
-              callerName: { type: 'string', description: 'Full name of the caller/patient' },
+              callerName: { type: 'string', description: 'Full name of the caller or customer' },
               callerPhone: { type: 'string', description: 'Contact phone number' },
-              appointmentDate: { type: 'string', description: 'Requested appointment date (YYYY-MM-DD)' },
-              appointmentTime: { type: 'string', description: 'Requested appointment time slot' },
-              service: { type: 'string', description: 'Requested service or treatment' },
-              notes: { type: 'string', description: 'Any symptoms or additional notes' },
+              appointmentDate: { type: 'string', description: 'Requested booking date (YYYY-MM-DD)' },
+              appointmentTime: { type: 'string', description: 'Requested booking time slot' },
+              service: { type: 'string', description: 'Requested service, reservation type, or topic' },
+              notes: { type: 'string', description: 'Any additional notes or customer preferences' },
             },
             required: ['callerName', 'callerPhone', 'appointmentDate', 'appointmentTime'],
           },

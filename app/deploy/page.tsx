@@ -162,7 +162,7 @@ export default function DeployPage() {
               {deployment?.isSample && <SampleDataBadge />}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
-              Share your voice assistant directly with clients and patients via a simple web link.
+              Share your voice assistant directly with customers and clients via a simple web link.
             </p>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function DeployPage() {
                           Shareable Web Link
                         </h3>
                         <p className="text-xs text-gray-600">
-                          Share this link with your customers or patients for instant voice calls in their browser.
+                          Share this link with your customers or clients for instant voice calls in their browser.
                         </p>
                       </div>
                     </div>
@@ -348,7 +348,7 @@ export default function DeployPage() {
                         Advanced Integration: Inbound Booking Webhook
                       </h3>
                       <p className="text-xs text-[#1F8A84]">
-                        Receive confirmed appointment bookings from your voice assistant into your clinic CRM or calendar.
+                        Receive confirmed appointment bookings from your voice assistant into your calendar or CRM.
                       </p>
                     </div>
                   </div>
