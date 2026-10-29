@@ -776,97 +776,98 @@ function TestConversationInner() {
         </div>
       </details>
 
-      {/* Real-time Streaming Transcript & Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Transcript Panel */}
-        <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[420px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
-                Live Streaming Conversation Transcript
-              </h3>
-              <p className="text-[10px] text-[#1F8A84]">Real-time speech transcription &amp; agent replies</p>
-            </div>
-            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-200">
-              Full duplex
-            </span>
+      {/* Real-time Streaming Transcript */}
+      <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[460px]">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F3D3E]">
+              Live Streaming Conversation Transcript
+            </h3>
+            <p className="text-xs text-[#1F8A84]">Real-time speech transcription &amp; assistant responses</p>
           </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-            {transcript.map((item) => {
-              const isAgent = item.role === 'agent';
-              return (
-                <div
-                  key={item.id}
-                  className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                    isAgent
-                      ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-6 border border-[#1F8A84]/30'
-                      : 'bg-gray-100 text-gray-900 ml-6 border border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-extrabold text-[10px] uppercase tracking-wider text-[#0F3D3E]">
-                      {isAgent ? '🤖 Assistant (AI)' : '👤 You (Caller)'}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-mono">{item.time}</span>
-                  </div>
-                  <p className="text-xs font-normal">{item.text}</p>
-                </div>
-              );
-            })}
-
-            {transcript.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-xs text-gray-400 text-center px-4">
-                <span className="text-2xl mb-2">💬</span>
-                <p>
-                  {isConnected
-                    ? 'Speak into your microphone to talk to the assistant...'
-                    : 'Click "Start conversation" to test your assistant live.'}
-                </p>
-              </div>
-            )}
-            <div ref={transcriptEndRef} />
-          </div>
+          <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-bold border border-emerald-200 flex items-center space-x-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Full duplex active</span>
+          </span>
         </div>
 
-        {/* Events Panel */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[420px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E]">
-                SDK Audio Events &amp; Tools
-              </h3>
-              <p className="text-[10px] text-gray-400">Interruption, mode changes &amp; tool requests</p>
-            </div>
-            <span className="text-[10px] text-gray-500 font-mono">ElevenLabs SDK</span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {events.map((evt) => (
+        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+          {transcript.map((item) => {
+            const isAgent = item.role === 'agent';
+            return (
               <div
-                key={evt.id}
-                className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 text-xs"
+                key={item.id}
+                className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${
+                  isAgent
+                    ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-12 border border-[#1F8A84]/30'
+                    : 'bg-gray-100 text-gray-900 ml-12 border border-gray-200'
+                }`}
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-[11px] text-[#0F3D3E]">
-                    {evt.title}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-[#0F3D3E]">
+                    {isAgent ? '🤖 Assistant (AI)' : '👤 You (Caller)'}
                   </span>
-                  <span className="text-[10px] text-gray-400 font-mono">{evt.time}</span>
+                  <span className="text-[10px] text-gray-400 font-mono">{item.time}</span>
                 </div>
-                <p className="text-[11px] text-gray-600 font-mono break-all leading-tight">
-                  {evt.detail}
-                </p>
+                <p className="font-normal">{item.text}</p>
               </div>
-            ))}
+            );
+          })}
 
-            {events.length === 0 && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-400 italic">
-                No events reported yet
-              </div>
-            )}
-          </div>
+          {transcript.length === 0 && (
+            <div className="h-full flex flex-col items-center justify-center text-xs sm:text-sm text-gray-400 text-center px-4">
+              <span className="text-3xl mb-2">💬</span>
+              <p className="font-medium text-gray-600">
+                {isConnected
+                  ? 'Speak into your microphone to talk to the assistant...'
+                  : 'Click "Start conversation" to speak with your assistant live.'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Your voice is transcribed in real time in both Hindi and English.
+              </p>
+            </div>
+          )}
+          <div ref={transcriptEndRef} />
         </div>
       </div>
+
+      {/* Collapsible Technical Diagnostics & Telemetry Log */}
+      <details className="bg-white p-4 rounded-2xl border border-gray-200 text-left text-xs group">
+        <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
+          <span className="flex items-center space-x-2">
+            <span>⚡</span>
+            <span>Developer Diagnostics: SDK Audio Events &amp; Tools</span>
+            <span className="text-gray-400 font-normal">
+              ({events.length} event{events.length === 1 ? '' : 's'} recorded)
+            </span>
+          </span>
+          <span className="text-xs text-[#1F8A84] font-medium">Show / Hide Telemetry</span>
+        </summary>
+        <div className="mt-4 pt-4 border-t border-gray-100 max-h-[300px] overflow-y-auto space-y-2 pr-1">
+          {events.map((evt) => (
+            <div
+              key={evt.id}
+              className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 text-xs"
+            >
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-bold text-[11px] text-[#0F3D3E]">
+                  {evt.title}
+                </span>
+                <span className="text-[10px] text-gray-400 font-mono">{evt.time}</span>
+              </div>
+              <p className="text-[11px] text-gray-600 font-mono break-all leading-tight">
+                {evt.detail}
+              </p>
+            </div>
+          ))}
+
+          {events.length === 0 && (
+            <div className="py-6 text-center text-xs text-gray-400 italic">
+              No SDK audio events recorded yet. Connect and speak to stream real-time telemetry.
+            </div>
+          )}
+        </div>
+      </details>
     </div>
   );
 }
