@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
+import SimulatedCallersPanel from '@/components/SimulatedCallersPanel';
 import { AgentDeployment, AgentConfig } from '@/lib/types';
 import { getDeploymentForConfig, saveDeploymentForConfig, isMatchingAgentName } from '@/lib/sync';
 
@@ -835,6 +836,11 @@ export default function TestPage() {
       <ConversationProvider>
         <TestConversationInner />
       </ConversationProvider>
+
+      {/* Optional Practice Callers Section (Collapsed by Default) */}
+      <section className="mt-8" aria-label="Practice Callers">
+        <SimulatedCallersPanel />
+      </section>
     </div>
   );
 }

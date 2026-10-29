@@ -82,6 +82,16 @@ export default function VoicePicker() {
   // Selection target: 'primary' (English/default) or 'hindi' (Language Preset)
   const [selectionTarget, setSelectionTarget] = useState<'primary' | 'hindi'>('primary');
 
+  // Voice Cloning Modal/Form State
+  const [isCloningOpen, setIsCloningOpen] = useState<boolean>(false);
+  const [cloneName, setCloneName] = useState<string>('');
+  const [cloneDescription, setCloneDescription] = useState<string>('');
+  const [cloneFile, setCloneFile] = useState<File | null>(null);
+  const [cloneConsent, setCloneConsent] = useState<boolean>(false);
+  const [isCloning, setIsCloning] = useState<boolean>(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
+  const [cloneSuccess, setCloneSuccess] = useState<string | null>(null);
+
   // Filters state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [useCaseFilter, setUseCaseFilter] = useState<string>('all');
@@ -235,6 +245,59 @@ export default function VoicePicker() {
     setVoiceNotice(`Selected "${voice.name}" for Hindi. Click "Save and update assistant" above to apply your changes.`);
   };
 
+  // Clone Custom Voice Handler
+  const handleCloneVoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cloneFile || !cloneName.trim() || !cloneConsent) return;
+
+    setIsCloning(true);
+    setCloneError(null);
+    setCloneSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', cloneFile);
+      formData.append('name', cloneName.trim());
+      if (cloneDescription.trim()) {
+        formData.append('description', cloneDescription.trim());
+      }
+      formData.append('consent', 'true');
+
+      const res = await fetch('/api/voices/clone', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to clone voice with ElevenLabs.');
+      }
+
+      const newVoice: VoiceItem = data.voice;
+      setVoices((prev) => [newVoice, ...prev]);
+
+      if (selectionTarget === 'hindi') {
+        handleSetHindiVoice(newVoice);
+      } else {
+        handleSetPrimaryVoice(newVoice);
+      }
+
+      setCloneSuccess(`Custom voice "${newVoice.name}" created and selected!`);
+      setCloneName('');
+      setCloneDescription('');
+      setCloneFile(null);
+      setCloneConsent(false);
+      setTimeout(() => {
+        setIsCloningOpen(false);
+        setCloneSuccess(null);
+      }, 2000);
+    } catch (err: any) {
+      setCloneError(err.message || 'Error occurred while cloning voice.');
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   // Filtered voice list
   const filteredVoices = useMemo(() => {
     return voices.filter((voice) => {
@@ -311,41 +374,168 @@ export default function VoicePicker() {
         </div>
       </div>
 
-      {/* Target Selector Tabs (Voice for English vs Voice for Hindi) */}
-      <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 mb-5">
-        <button
-          type="button"
-          onClick={() => setSelectionTarget('primary')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-            selectionTarget === 'primary'
-              ? 'bg-[#0F3D3E] text-white shadow-xs'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <span>🎙️ Voice for English</span>
-        </button>
+      {/* Target Selector Tabs (Voice for English vs Voice for Hindi + Clone Custom Voice) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3 mb-5">
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setSelectionTarget('primary')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+              selectionTarget === 'primary'
+                ? 'bg-[#0F3D3E] text-white shadow-xs'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <span>🎙️ Voice for English</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectionTarget('hindi');
+              // Auto-filter for Hindi when Hindi tab selected for quick discovery
+              if (languageFilter === 'all') {
+                setLanguageFilter('hindi');
+              }
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+              selectionTarget === 'hindi'
+                ? 'bg-[#1F8A84] text-white shadow-xs'
+                : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200'
+            }`}
+          >
+            <span>🇮🇳 Voice for Hindi</span>
+            {hasHindi && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
+            )}
+          </button>
+        </div>
 
         <button
           type="button"
-          onClick={() => {
-            setSelectionTarget('hindi');
-            // Auto-filter for Hindi when Hindi tab selected for quick discovery
-            if (languageFilter === 'all') {
-              setLanguageFilter('hindi');
-            }
-          }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-            selectionTarget === 'hindi'
-              ? 'bg-[#1F8A84] text-white shadow-xs'
-              : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200'
+          onClick={() => setIsCloningOpen((prev) => !prev)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border ${
+            isCloningOpen
+              ? 'bg-purple-100 text-purple-950 border-purple-300'
+              : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-200'
           }`}
         >
-          <span>🇮🇳 Voice for Hindi</span>
-          {hasHindi && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
-          )}
+          <span>✨</span>
+          <span>{isCloningOpen ? 'Close Voice Cloner' : 'Clone your own voice'}</span>
         </button>
       </div>
+
+      {/* Voice Cloning Panel */}
+      {isCloningOpen && (
+        <form
+          onSubmit={handleCloneVoice}
+          className="p-5 mb-5 rounded-2xl bg-gradient-to-br from-purple-50/70 to-[#E8F1EF]/60 border-2 border-purple-200 shadow-xs"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">🎙️</span>
+              <h3 className="text-sm font-extrabold text-[#0F3D3E]">
+                Clone a brand or staff voice with ElevenLabs
+              </h3>
+            </div>
+            <span className="text-[10px] font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-300">
+              Instant Voice Cloning
+            </span>
+          </div>
+
+          <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+            Upload an audio sample of yourself or your receptionist. ElevenLabs creates a natural, matching voice clone for your assistant.
+          </p>
+
+          {cloneError && (
+            <div className="p-3 mb-3 rounded-xl bg-red-50 border border-red-300 text-xs text-red-900 flex items-center justify-between">
+              <span>⚠️ {cloneError}</span>
+              <button type="button" onClick={() => setCloneError(null)} className="font-bold">✕</button>
+            </div>
+          )}
+
+          {cloneSuccess && (
+            <div className="p-3 mb-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 font-bold">
+              ✓ {cloneSuccess}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="text-[11px] font-bold text-[#0F3D3E] block mb-1">
+                Voice Name *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Dr. Meera Clinic Voice"
+                value={cloneName}
+                onChange={(e) => setCloneName(e.target.value)}
+                required
+                className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1F8A84] focus:outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-[#0F3D3E] block mb-1">
+                Audio Sample (.mp3, .wav, .m4a) *
+              </label>
+              <input
+                type="file"
+                accept="audio/*,.mp3,.wav,.m4a"
+                onChange={(e) => setCloneFile(e.target.files?.[0] || null)}
+                required
+                className="w-full text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0F3D3E] file:text-white hover:file:bg-[#1F8A84]"
+              />
+            </div>
+          </div>
+
+          {/* Mandatory Responsible AI Consent Checkbox (PDF Requirement) */}
+          <div className="p-3 bg-white/90 border border-gray-200 rounded-xl mb-4">
+            <label className="flex items-start space-x-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cloneConsent}
+                onChange={(e) => setCloneConsent(e.target.checked)}
+                required
+                className="mt-0.5 rounded text-[#1F8A84] focus:ring-[#1F8A84]"
+              />
+              <span className="text-[11px] text-gray-700 leading-snug">
+                <strong>Legal &amp; Ethical Consent:</strong> I confirm that I own this voice or have explicit documented consent from the speaker to clone and use their voice, in strict accordance with ElevenLabs safety policies and hackathon rules.
+              </span>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end space-x-2">
+            <button
+              type="button"
+              onClick={() => setIsCloningOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isCloning || !cloneName.trim() || !cloneFile || !cloneConsent}
+              className="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-2 disabled:opacity-50"
+            >
+              {isCloning ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span>Cloning Voice...</span>
+                </>
+              ) : (
+                <>
+                  <span>✨</span>
+                  <span>Create Voice Clone</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Currently Selected Voices Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">

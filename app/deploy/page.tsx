@@ -6,6 +6,7 @@ import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
 import AgentSyncStatus from '@/components/AgentSyncStatus';
 import VoicePicker from '@/components/VoicePicker';
+import BulkCampaignPanel from '@/components/BulkCampaignPanel';
 import { useAgentConfig } from '@/lib/useAgentConfig';
 import { AgentDeployment } from '@/lib/types';
 import { computeConfigHash, setSavedSyncState, getDeploymentForConfig, saveDeploymentForConfig } from '@/lib/sync';
@@ -438,6 +439,11 @@ export default function DeployPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Bulk Outbound Calling Campaign (Bonus Feature, Collapsed by Default) */}
+              <div className="mt-8">
+                <BulkCampaignPanel />
               </div>
 
               {/* Checklist Section */}
