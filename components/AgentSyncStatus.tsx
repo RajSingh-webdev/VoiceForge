@@ -76,11 +76,11 @@ export default function AgentSyncStatus({
       >
         <div className="flex items-center space-x-2">
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
-          <span className="font-semibold text-gray-800">Sample agent: nothing to update</span>
+          <span className="font-semibold text-gray-800">Sample assistant ready</span>
           <SampleDataBadge />
         </div>
         <p className="text-xs text-gray-500">
-          Agent ID: <code className="bg-gray-100 px-1 py-0.5 rounded font-mono">{deployment.agentId}</code>
+          Connect your ElevenLabs API key to update live assistants.
         </p>
       </div>
     );
@@ -101,12 +101,12 @@ export default function AgentSyncStatus({
       deployment.name.trim().toLowerCase() !== config.name.trim().toLowerCase()
     ) {
       const confirmedMismatch = window.confirm(
-        `Warning: Your current draft configuration is for "${config.name}", but the live agent is "${deployment.name}" (${deployment.agentId}).\n\nDo you want to overwrite "${deployment.name}" with your changes for "${config.name}"?`
+        `Warning: Your current changes are for "${config.name}", but your active assistant is "${deployment.name}" (${deployment.agentId}).\n\nDo you want to update "${deployment.name}" with these changes?`
       );
       if (!confirmedMismatch) return;
     } else {
       const confirmed = window.confirm(
-        'Publish your latest saved edits to the live ElevenLabs assistant?'
+        'Save your changes and update your assistant?'
       );
       if (!confirmed) return;
     }
@@ -128,7 +128,7 @@ export default function AgentSyncStatus({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to update live ElevenLabs agent.');
+        throw new Error(data.error || 'Failed to update assistant in ElevenLabs.');
       }
 
       const syncTime = data.updatedAt || new Date().toISOString();
@@ -150,7 +150,7 @@ export default function AgentSyncStatus({
         onSyncSuccess();
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error occurred while updating the live agent.');
+      setErrorMessage(err.message || 'Error occurred while updating the assistant.');
     } finally {
       setIsUpdating(false);
     }
@@ -176,20 +176,28 @@ export default function AgentSyncStatus({
             <div className="flex items-center space-x-2 flex-wrap">
               <span className="font-bold text-sm">
                 {isInSync
-                  ? 'Published — your assistant is up to date.'
-                  : "Unpublished changes — your recent edits aren't live yet."}
+                  ? 'Your assistant is up to date'
+                  : "You've made some changes"}
               </span>
-              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-white/70 border border-current opacity-80">
-                {deployment.agentId}
-              </span>
+              {!isInSync && (
+                <span className="text-[11px] font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">
+                  Your latest changes haven&apos;t been applied yet.
+                </span>
+              )}
             </div>
             <p className="text-xs opacity-80 mt-0.5">
               {isInSync
                 ? lastSyncedTime
-                  ? `Last published at ${lastSyncedTime}. Your live assistant in ElevenLabs matches the saved setup.`
-                  : 'Your live assistant in ElevenLabs matches the saved setup.'
-                : 'Modifications made in VoiceForge have not been sent to your ElevenLabs assistant yet.'}
+                  ? `Last updated at ${lastSyncedTime}. Your live assistant matches your saved settings.`
+                  : 'Your live assistant matches your saved settings.'
+                : 'Your assistant is still using its previous settings. Save your changes to update it.'}
             </p>
+            <details className="mt-1 text-[11px] text-gray-500">
+              <summary className="cursor-pointer text-[#1F8A84] font-medium hover:underline inline select-none">
+                Advanced details
+              </summary>
+              <span className="ml-2 font-mono text-[10px] text-gray-600">ID: {deployment.agentId}</span>
+            </details>
           </div>
         </div>
 
@@ -237,10 +245,10 @@ export default function AgentSyncStatus({
                     d="M4 12a8 8 0 018-8v8H4z"
                   ></path>
                 </svg>
-                <span>Publishing changes…</span>
+                <span>Saving and updating assistant...</span>
               </>
             ) : (
-              <span>Publish changes</span>
+              <span>Save and update assistant</span>
             )}
           </button>
         </div>
@@ -251,7 +259,7 @@ export default function AgentSyncStatus({
         <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-start space-x-2">
           <span className="font-bold shrink-0">⚠️</span>
           <div>
-            <p className="font-bold">Couldn&apos;t publish changes. Please try again.</p>
+            <p className="font-bold">Couldn&apos;t update your assistant. Please try again.</p>
             <p className="mt-0.5">{errorMessage}</p>
           </div>
         </div>
@@ -262,7 +270,7 @@ export default function AgentSyncStatus({
         <div className="mt-3 p-2.5 rounded-lg bg-emerald-100/60 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span>✅</span>
-            <span>Successfully published changes to live assistant at {successInfo.time}.</span>
+            <span>Your assistant has been updated successfully.</span>
           </div>
           <Link
             href="/test?source=deployed"

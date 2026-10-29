@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { VoiceItem, AgentDeployment } from '@/lib/types';
+import { VoiceItem } from '@/lib/types';
 import { useAgentConfig } from '@/lib/useAgentConfig';
-import { DEPLOYMENT_STORAGE_KEY, setSavedSyncState, computeConfigHash } from '@/lib/sync';
 
 // Default voice Rachel ID in ElevenLabs
 const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
@@ -78,11 +77,7 @@ export default function VoicePicker() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSampleMode, setIsSampleMode] = useState<boolean>(false);
 
-  // Deployed agent detection for direct live synchronization
-  const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
-  const [handMadeAgentId, setHandMadeAgentId] = useState<string | null>(null);
-  const [isApplyingLive, setIsApplyingLive] = useState<boolean>(false);
-  const [liveSuccessMessage, setLiveSuccessMessage] = useState<string | null>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   // Selection target: 'primary' (English/default) or 'hindi' (Language Preset)
   const [selectionTarget, setSelectionTarget] = useState<'primary' | 'hindi'>('primary');
@@ -106,30 +101,6 @@ export default function VoicePicker() {
       )
     );
   }, [config?.languages]);
-
-  // Read deployment or hand-made agent on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const depRaw = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        if (depRaw) {
-          setDeployment(JSON.parse(depRaw));
-        }
-      } catch {}
-    }
-    async function checkAgent() {
-      try {
-        const res = await fetch('/api/voice/session');
-        const data = await res.json();
-        if (data.handMadeAgentId) {
-          setHandMadeAgentId(data.handMadeAgentId);
-        }
-      } catch {}
-    }
-    checkAgent();
-  }, []);
-
-  const effectiveAgentId = deployment?.agentId || handMadeAgentId;
 
   // Load voices from /api/voices
   useEffect(() => {
@@ -238,18 +209,17 @@ export default function VoicePicker() {
   // Set as Primary Voice
   const handleSetPrimaryVoice = (voice: VoiceItem) => {
     if (!config) return;
-    setLiveSuccessMessage(null);
     setConfig({
       ...config,
       voiceId: voice.voiceId,
       voiceName: voice.name,
     });
+    setVoiceNotice(`Selected "${voice.name}" for English. Click "Save and update assistant" above to apply your changes.`);
   };
 
   // Set as Hindi Voice
   const handleSetHindiVoice = (voice: VoiceItem) => {
     if (!config) return;
-    setLiveSuccessMessage(null);
     // Automatically ensure Hindi is in the language list if not already present
     const updatedLanguages = Array.isArray(config.languages) ? [...config.languages] : ['English'];
     if (!updatedLanguages.some((l) => l.toLowerCase().includes('hindi') || l.toLowerCase() === 'hi')) {
@@ -262,46 +232,7 @@ export default function VoicePicker() {
       voiceIdHindi: voice.voiceId,
       voiceNameHindi: voice.name,
     });
-  };
-
-  // Save and apply directly to Live ElevenLabs Agent with read-back verification
-  const handleApplyToLiveAgent = async () => {
-    if (!config || !effectiveAgentId || isApplyingLive) return;
-
-    setIsApplyingLive(true);
-    setErrorMessage(null);
-    setLiveSuccessMessage(null);
-
-    try {
-      const res = await fetch('/api/agents/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentId: effectiveAgentId,
-          config,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to apply voice to live ElevenLabs agent.');
-      }
-
-      // Record sync state
-      const newHash = computeConfigHash(config);
-      const now = new Date().toISOString();
-      setSavedSyncState(newHash, now, effectiveAgentId);
-
-      setLiveSuccessMessage(
-        `✓ Voice successfully applied & read-back verified! Primary voice: "${data.voiceId}"${
-          data.voiceIdHindi ? ` · Hindi preset voice: "${data.voiceIdHindi}"` : ''
-        }`
-      );
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error occurred while updating live agent.');
-    } finally {
-      setIsApplyingLive(false);
-    }
+    setVoiceNotice(`Selected "${voice.name}" for Hindi. Click "Save and update assistant" above to apply your changes.`);
   };
 
   // Filtered voice list
@@ -362,7 +293,7 @@ export default function VoicePicker() {
         <div>
           <div className="flex items-center space-x-2">
             <h2 className="text-lg font-bold text-[#0F3D3E]">
-              Voice Picker &amp; Multilingual Quality
+              Choose how your assistant sounds
             </h2>
             {isSampleMode ? (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
@@ -375,35 +306,12 @@ export default function VoicePicker() {
             )}
           </div>
           <p className="text-xs text-[#1F8A84] mt-0.5">
-            Select authentic, natural conversational voices for both English calls and dedicated Indian Hindi responses.
+            You can choose different voices for English and Hindi so your assistant sounds natural to all callers.
           </p>
         </div>
-
-        {/* Live Sync Button if Deployed or Configured in ELEVENLABS_AGENT_ID */}
-        {effectiveAgentId && (
-          <button
-            type="button"
-            id="apply-voice-live-btn"
-            onClick={handleApplyToLiveAgent}
-            disabled={isApplyingLive}
-            className="px-4 py-2 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-2 disabled:opacity-50 shrink-0"
-          >
-            {isApplyingLive ? (
-              <>
-                <span className="animate-spin text-sm">🔄</span>
-                <span>Applying to Live Agent...</span>
-              </>
-            ) : (
-              <>
-                <span>🚀</span>
-                <span>Apply to Live ElevenLabs Agent</span>
-              </>
-            )}
-          </button>
-        )}
       </div>
 
-      {/* Target Selector Tabs (Primary Voice vs Hindi Language Preset) */}
+      {/* Target Selector Tabs (Voice for English vs Voice for Hindi) */}
       <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 mb-5">
         <button
           type="button"
@@ -414,7 +322,7 @@ export default function VoicePicker() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <span>🎙️ Primary Voice (English / Default)</span>
+          <span>🎙️ Voice for English</span>
         </button>
 
         <button
@@ -432,7 +340,7 @@ export default function VoicePicker() {
               : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200'
           }`}
         >
-          <span>🇮🇳 Hindi Response Voice (Language Preset)</span>
+          <span>🇮🇳 Voice for Hindi</span>
           {hasHindi && (
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
           )}
@@ -441,7 +349,7 @@ export default function VoicePicker() {
 
       {/* Currently Selected Voices Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        {/* Card 1: Primary Voice */}
+        {/* Card 1: Voice for English */}
         <div
           className={`p-3.5 rounded-xl border transition-all ${
             selectionTarget === 'primary'
@@ -451,7 +359,7 @@ export default function VoicePicker() {
         >
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
-              Primary Voice (Default &amp; English)
+              Voice for English
             </span>
             {selectionTarget === 'primary' && (
               <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
@@ -467,7 +375,7 @@ export default function VoicePicker() {
           </p>
         </div>
 
-        {/* Card 2: Hindi Voice */}
+        {/* Card 2: Voice for Hindi */}
         <div
           className={`p-3.5 rounded-xl border transition-all ${
             selectionTarget === 'hindi'
@@ -477,7 +385,7 @@ export default function VoicePicker() {
         >
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-800">
-              Hindi Response Voice (Language Preset)
+              Voice for Hindi
             </span>
             {selectionTarget === 'hindi' && (
               <span className="text-[9px] font-bold bg-[#1F8A84] text-white px-1.5 py-0.5 rounded">
@@ -494,20 +402,20 @@ export default function VoicePicker() {
         </div>
       </div>
 
-      {/* Live Agent Update Success Banner */}
-      {liveSuccessMessage && (
+      {/* Voice Selection Notice */}
+      {voiceNotice && (
         <div
           role="status"
-          className="mb-5 p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs font-semibold flex items-center justify-between shadow-xs"
+          className="mb-5 p-3.5 rounded-xl bg-teal-50 border border-teal-300 text-teal-950 text-xs font-semibold flex items-center justify-between shadow-xs"
         >
           <div className="flex items-center space-x-2">
-            <span className="text-lg">✅</span>
-            <span>{liveSuccessMessage}</span>
+            <span className="text-base">🎙️</span>
+            <span>{voiceNotice}</span>
           </div>
           <button
             type="button"
-            onClick={() => setLiveSuccessMessage(null)}
-            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+            onClick={() => setVoiceNotice(null)}
+            className="text-xs text-teal-700 hover:text-teal-900 font-bold ml-2"
           >
             ✕
           </button>
@@ -750,7 +658,7 @@ export default function VoicePicker() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      <span>{isPlaying ? '⏹ Pause' : '▶ Preview'}</span>
+                      <span>{isPlaying ? '⏹ Pause' : '▶ Listen to this voice'}</span>
                     </button>
                   ) : (
                     <span className="text-[11px] text-gray-400 italic">No audio sample</span>
@@ -767,7 +675,7 @@ export default function VoicePicker() {
                           : 'bg-[#0F3D3E] text-white hover:bg-[#1F8A84]'
                       }`}
                     >
-                      {isPrimarySelected ? '✓ Primary Active' : 'Set as Primary'}
+                      {isPrimarySelected ? '✓ Active for English' : 'Use for English'}
                     </button>
 
                     <button
@@ -779,7 +687,7 @@ export default function VoicePicker() {
                           : 'bg-teal-50 text-teal-900 border border-teal-300 hover:bg-teal-100'
                       }`}
                     >
-                      {isHindiSelected ? '✓ Hindi Active' : '🇮🇳 Set for Hindi'}
+                      {isHindiSelected ? '✓ Active for Hindi' : '🇮🇳 Use for Hindi'}
                     </button>
                   </div>
                 </div>

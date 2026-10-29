@@ -580,12 +580,16 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     }, MOCK_AGENT_CONFIG);
     await page.reload();
 
-    // Click "Create agent"
-    const deployBtn = page.locator('button:has-text("Create agent")');
+    // Click "Create assistant"
+    const deployBtn = page.locator('button:has-text("Create assistant"), button:has-text("Create agent")');
     await expect(deployBtn).toBeVisible();
     await deployBtn.click();
 
-    // 1. Verify Sample Agent ID
+    // 1. Verify Sample Agent ID inside Advanced details
+    const summaryBtn = page.locator('summary:has-text("Advanced details")');
+    if (await summaryBtn.count() > 0) {
+      await summaryBtn.first().click();
+    }
     await expect(page.getByText('agent_sample_dental_123').first()).toBeVisible();
 
     // 2. Verify SampleDataBadge

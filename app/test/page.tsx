@@ -614,7 +614,7 @@ function TestConversationInner() {
               <span className="font-semibold text-[#0F3D3E]">
                 Voice: {isHindiPrimary ? (draftConfig?.voiceNameHindi || 'Ritu Rathore (Natural Indian Hindi)') : (draftConfig?.voiceName || 'Rachel (Natural English)')}
               </span>
-              <span className="text-emerald-700 font-medium">Bilingual duplex active</span>
+              <span className="text-emerald-700 font-medium">Bilingual English &amp; Hindi</span>
             </div>
             <p className="text-gray-700 italic leading-snug">
               &ldquo;{isHindiPrimary ? activeGreetingHindi : activeGreetingEnglish}&rdquo;
@@ -684,13 +684,13 @@ function TestConversationInner() {
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F3D3E]">
-              Live Streaming Conversation Transcript
+              Conversation Transcript
             </h3>
             <p className="text-xs text-[#1F8A84]">Real-time speech transcription &amp; assistant responses</p>
           </div>
           <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-bold border border-emerald-200 flex items-center space-x-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Full duplex active</span>
+            <span>Live audio active</span>
           </span>
         </div>
 

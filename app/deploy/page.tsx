@@ -212,32 +212,42 @@ export default function DeployPage() {
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-bold text-[#0F3D3E]">
-                  {deployment ? 'Assistant Deployed' : 'Publish Voice Assistant'}
+                  {deployment ? 'Your AI assistant is ready!' : 'Ready to create your assistant?'}
                 </h2>
                 {deployment?.isSample && <SampleDataBadge />}
               </div>
               <p className="text-xs sm:text-sm text-[#1F8A84] mt-1">
                 {deployment
-                  ? `Active Agent ID: ${deployment.agentId} · Published ${new Date(deployment.createdAt).toLocaleDateString()}`
-                  : 'Generate your deployment credentials to unlock your share link, embed widget, and simulated phone flow.'}
-                {createdCount > 0 && (
-                  <span className="block text-[11px] text-gray-500 mt-0.5">
-                    Total created: {createdCount} agent{createdCount === 1 ? '' : 's'}
-                  </span>
-                )}
+                  ? 'Your assistant has been created and is ready to test.'
+                  : 'Create your assistant to unlock your share link, website widget, and phone options.'}
               </p>
+              {deployment && (
+                <details className="mt-2 text-xs text-gray-500">
+                  <summary className="cursor-pointer text-[#1F8A84] font-medium hover:underline inline-block select-none">
+                    Advanced details
+                  </summary>
+                  <div className="mt-1 p-2 rounded bg-gray-50 border border-gray-200 font-mono text-[11px] text-gray-600">
+                    Assistant ID: {deployment.agentId} · Created {new Date(deployment.createdAt).toLocaleDateString()}
+                    {createdCount > 0 && ` · Total created: ${createdCount}`}
+                  </div>
+                </details>
+              )}
             </div>
 
             <button
               type="button"
               onClick={handleCreateAgent}
               disabled={isCreating}
-              className="px-6 py-3 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-xl text-sm font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shrink-0"
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shrink-0 ${
+                deployment
+                  ? 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-300'
+                  : 'bg-[#0F3D3E] hover:bg-[#1F8A84] text-white'
+              }`}
             >
               {isCreating ? (
                 <>
                   <svg
-                    className="animate-spin h-4 w-4 text-white"
+                    className="animate-spin h-3.5 w-3.5 text-current"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -245,10 +255,10 @@ export default function DeployPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  <span>Connecting ElevenLabs...</span>
+                  <span>Creating assistant...</span>
                 </>
               ) : (
-                <span>{deployment ? 'Re-create agent' : '🚀 Create agent'}</span>
+                <span>{deployment ? 'Create another assistant' : 'Create assistant'}</span>
               )}
             </button>
           </div>

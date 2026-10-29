@@ -215,8 +215,8 @@ export default function RefinePage() {
           <span className="text-[#1F8A84] text-base font-bold shrink-0">ℹ️</span>
           <p className="text-xs sm:text-sm text-[#0F3D3E] font-medium leading-relaxed">
             {isRealAgent
-              ? 'Changes reach the live agent when you click Publish changes.'
-              : 'Changes update your saved setup. The live voice agent will be updated once ElevenLabs is connected.'}
+              ? 'Changes reach your assistant when you click Save and update assistant.'
+              : 'Changes update your saved setup. Your live assistant will be updated once ElevenLabs is connected.'}
           </p>
         </div>
 
