@@ -304,17 +304,7 @@ export default function DeployPage() {
                     </span>
                   </div>
 
-                  {(origin.includes('localhost') || origin.includes('127.0.0.1')) && (
-                    <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
-                      <strong>Local testing address:</strong> This link runs on your local computer ({origin}). When deployed to production, your public web domain will appear here for customers.
-                    </div>
-                  )}
-
-                  <div className="p-3 rounded-xl bg-[#E8F1EF]/40 border border-[#1F8A84]/20 font-mono text-xs text-[#0F3D3E] break-all mb-4 select-all">
-                    {shareUrl}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={handleCopyLink}
@@ -344,67 +334,6 @@ export default function DeployPage() {
               {/* Bulk Outbound Calling Campaign (Bonus Feature, Collapsed by Default) */}
               <div className="mt-8">
                 <BulkCampaignPanel />
-              </div>
-
-              {/* Checklist Section */}
-              <div className="mt-8 bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-base font-bold text-[#0F3D3E]">
-                      Deployment Readiness Checklist
-                    </h3>
-                    <p className="text-xs text-[#1F8A84]">
-                      Current status of your assistant deployment across live vs. sample components.
-                    </p>
-                  </div>
-                  {deployment.isSample && <SampleDataBadge />}
-                </div>
-
-                <div className="divide-y divide-gray-100">
-                  {/* Item 1: Agent */}
-                  <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-emerald-600 font-bold text-base">✓</span>
-                      <div>
-                        <p className="text-xs font-bold text-[#0F3D3E]">
-                          Agent Configuration &amp; Knowledge
-                        </p>
-                        <p className="text-[11px] text-gray-600">
-                          {config.name} ({config.languages.join(', ')}) with AI disclosure and clinic guardrails.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      {deployment.isSample ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                          Sample agent ID ({deployment.agentId})
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          Live ElevenLabs agent ({deployment.agentId})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Item 2: Web Preview Link */}
-                  <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-emerald-600 font-bold text-base">✓</span>
-                      <div>
-                        <p className="text-xs font-bold text-[#0F3D3E]">
-                          Standalone Public Web Preview
-                        </p>
-                        <p className="text-[11px] text-gray-600">
-                          Accessible on creating device via /agent/{deployment.agentId}.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-900 border border-teal-300 shrink-0">
-                      Device-local link
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Optional Advanced Integration: Booking Webhook */}
