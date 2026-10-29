@@ -123,7 +123,7 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     // Transfer Call to Person (Human Escalation) should appear as working tool with phone input and Call button
     const escalationInput = page.locator('input[value="Transfer Call to Person"]');
     await expect(escalationInput).toBeVisible();
-    await expect(page.locator('text=Active — Live Call Transfer')).toBeVisible();
+    await expect(page.locator('text=Active — Live Call Transfer')).toHaveCount(0);
 
     const staffPhoneInput = page.locator('#staff-transfer-phone');
     await expect(staffPhoneInput).toBeVisible();

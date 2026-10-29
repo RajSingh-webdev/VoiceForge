@@ -150,7 +150,22 @@ export default function WritePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Call transfer failed');
       setTransferResult(`✓ Call connected! Call transferred to staff at ${targetPhone}.`);
-      setTimeout(() => setTransferResult(null), 5000);
+      if (typeof window !== 'undefined') {
+        const cleanPhone = targetPhone.replace(/[^0-9+]/g, '');
+        if (cleanPhone) {
+          try {
+            const a = document.createElement('a');
+            a.href = `tel:${cleanPhone}`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } catch {
+            // Ignore in environments without a telephone handler
+          }
+        }
+      }
+      setTimeout(() => setTransferResult(null), 8000);
     } catch (err: any) {
       setTransferResult(`⚠️ ${err.message || 'Call transfer failed'}`);
     } finally {
@@ -1676,9 +1691,6 @@ export default function WritePage() {
                           </p>
                         </div>
                       </div>
-                      <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
-                        ✓ Active — Live Call Transfer
-                      </span>
                     </div>
 
                     <div className="pt-2 border-t border-[#1F8A84]/15">
@@ -1707,15 +1719,24 @@ export default function WritePage() {
                           onClick={handleTestTransfer}
                           disabled={isTestingTransfer}
                           className="px-4 py-2.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-1.5 shadow-2xs shrink-0"
-                          title="Simulate transferring a call to this phone number"
+                          title="Dial this phone number"
                         >
-                          <span>{isTestingTransfer ? 'Dialing...' : '📞 Call to Person (Test)'}</span>
+                          <span>{isTestingTransfer ? 'Dialing...' : '📞 Call to Person'}</span>
                         </button>
                       </div>
                       {transferResult && (
-                        <p className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-fadeIn">
-                          {transferResult}
-                        </p>
+                        <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-3 rounded-xl border border-emerald-200 animate-fadeIn space-y-1">
+                          <p className="font-semibold">{transferResult}</p>
+                          <p className="text-[11px] text-emerald-700">
+                            If your device did not automatically prompt its phone dialer, you can also{' '}
+                            <a
+                              href={`tel:${(config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210').replace(/[^0-9+]/g, '')}`}
+                              className="underline font-bold hover:text-emerald-950"
+                            >
+                              click here to dial directly
+                            </a>.
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
