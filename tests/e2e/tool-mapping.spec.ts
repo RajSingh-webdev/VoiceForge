@@ -140,9 +140,11 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     const webhookUrlInput = page.locator('#booking-webhook-url');
     await expect(webhookUrlInput).toBeVisible();
 
-    // Verify test booking and view bookings buttons are removed
+    // Verify test booking, view bookings buttons, and developer status tags are removed
     await expect(page.locator('button:has-text("Test Booking")')).toHaveCount(0);
     await expect(page.locator('button:has-text("View Bookings")')).toHaveCount(0);
+    await expect(page.locator('text=Ready to accept bookings')).toHaveCount(0);
+    await expect(page.locator('text=Webhook: /api/webhooks/booking')).toHaveCount(0);
 
     // Test "Create New Assistant" button
     page.once('dialog', async (dialog) => {

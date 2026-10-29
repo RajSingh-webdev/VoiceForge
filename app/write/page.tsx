@@ -1772,17 +1772,11 @@ export default function WritePage() {
                           </p>
                         </div>
                       </div>
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border shrink-0 ${
-                          config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                            : 'bg-teal-50 text-teal-800 border-teal-300'
-                        }`}
-                      >
-                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
-                          ? '✓ Live Webhook Connected'
-                          : 'Webhook: /api/webhooks/booking'}
-                      </span>
+                      {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://') && (
+                        <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shrink-0">
+                          ✓ Live Webhook Connected
+                        </span>
+                      )}
                     </div>
 
                     {/* Zapier / Google Calendar / CRM Webhook Input */}
@@ -1805,14 +1799,6 @@ export default function WritePage() {
                       <p className="text-[11px] text-gray-500 mt-1">
                         Paste your Zapier or Make webhook trigger. Every confirmed booking made during voice calls is delivered directly here so it automatically creates Google Calendar events, adds rows to Google Sheets, or logs leads in your CRM.
                       </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#1F8A84]/15">
-                      <span className="text-xs text-[#1F8A84]">
-                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('https://')
-                          ? '✓ Connected to your custom webhook. Voice agent calls will dispatch directly to your CRM / Calendar.'
-                          : 'Ready to accept bookings. Add your Zapier, Make, or CRM URL above for automated calendar sync.'}
-                      </span>
                     </div>
                   </div>
 
