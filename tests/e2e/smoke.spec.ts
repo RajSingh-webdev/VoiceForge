@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SAMPLE_CONVERSATIONS } from '../../lib/elevenlabs';
 
 const MOCK_AGENT_CONFIG = {
   name: 'Smile Dental Assistant',
@@ -142,6 +143,30 @@ function setupMockRoutes(page: any) {
       body: JSON.stringify({
         signedUrl: 'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=mock_agent',
         isSample: true,
+      }),
+    });
+  });
+
+  // Mock /api/conversations
+  page.route('**/api/conversations*', async (route: any) => {
+    const url = new URL(route.request().url());
+    const id = url.searchParams.get('id');
+    if (id) {
+      const match = SAMPLE_CONVERSATIONS.find((c: any) => c.id === id);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ conversation: match || null }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        conversations: SAMPLE_CONVERSATIONS,
+        isSample: true,
+        totalReal: 0,
       }),
     });
   });

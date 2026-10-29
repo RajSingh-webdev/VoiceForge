@@ -5,7 +5,7 @@ import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
 import SimulatedCallersPanel from '@/components/SimulatedCallersPanel';
-import { AgentDeployment } from '@/lib/types';
+import { AgentDeployment, AgentConfig } from '@/lib/types';
 
 interface TranscriptItem {
   id: string;
@@ -22,6 +22,7 @@ interface EventItem {
 }
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
+const AGENT_STORAGE_KEY = 'voiceforge:agent';
 
 function TestConversationInner() {
   const [isRealVoiceConfigured, setIsRealVoiceConfigured] = useState<boolean | null>(null);
@@ -32,10 +33,11 @@ function TestConversationInner() {
   const [hasConnectedOnce, setHasConnectedOnce] = useState<boolean>(false);
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
-  // Requirement 5: Which Agent selector state
+  // Which Agent selector state
   const [handMadeAgentId, setHandMadeAgentId] = useState<string>('');
   const [deployedAgentId, setDeployedAgentId] = useState<string>('');
-  const [selectedAgentSource, setSelectedAgentSource] = useState<'handmade' | 'deployed'>('handmade');
+  const [selectedAgentSource, setSelectedAgentSource] = useState<'handmade' | 'deployed'>('deployed');
+  const [draftConfig, setDraftConfig] = useState<AgentConfig | null>(null);
 
   const callerFinishedTimeRef = useRef<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -52,23 +54,35 @@ function TestConversationInner() {
     ]);
   }, []);
 
-  // Check server voice connection capability & read deployed agent on mount
+  // Check server voice connection capability & read stored agents on mount
   useEffect(() => {
     let isMounted = true;
+    let hasDeployed = false;
 
-    // Read deployed agent from localStorage
+    // Read stored deployment and draft agent from localStorage
     if (typeof window !== 'undefined') {
       try {
-        const stored = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        if (stored) {
-          const parsed: AgentDeployment = JSON.parse(stored);
+        const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
+        if (storedDeployment) {
+          const parsed: AgentDeployment = JSON.parse(storedDeployment);
           if (parsed && typeof parsed.agentId === 'string' && parsed.agentId.trim()) {
             setDeployedAgentId(parsed.agentId.trim());
+            hasDeployed = true;
+          }
+        }
+
+        const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
+        if (storedAgent) {
+          const parsedAgent = JSON.parse(storedAgent);
+          if (parsedAgent && typeof parsedAgent === 'object') {
+            setDraftConfig(parsedAgent);
           }
         }
 
         const params = new URLSearchParams(window.location.search);
-        if (params.get('source') === 'deployed' || params.get('agent') === 'deployed') {
+        if (params.get('source') === 'handmade' || params.get('agent') === 'handmade') {
+          setSelectedAgentSource('handmade');
+        } else {
           setSelectedAgentSource('deployed');
         }
       } catch {
@@ -84,6 +98,11 @@ function TestConversationInner() {
           setIsRealVoiceConfigured(data.realVoice === true);
           if (data.handMadeAgentId) {
             setHandMadeAgentId(data.handMadeAgentId);
+            if (!hasDeployed) {
+              setSelectedAgentSource('handmade');
+            }
+          } else {
+            setSelectedAgentSource('deployed');
           }
           if (data.realVoice !== true && data.message) {
             setSessionError(data.message);
@@ -204,9 +223,11 @@ function TestConversationInner() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Resolve active agent ID
+  // Resolve active agent ID: prefer currently selected source, falling back gracefully
   const activeAgentId =
-    selectedAgentSource === 'handmade' ? handMadeAgentId : deployedAgentId;
+    selectedAgentSource === 'deployed'
+      ? (deployedAgentId || handMadeAgentId)
+      : (handMadeAgentId || deployedAgentId);
 
   // Start conversation handler
   const handleToggleConversation = async () => {
@@ -219,18 +240,55 @@ function TestConversationInner() {
       return;
     }
 
-    if (!activeAgentId) {
-      if (selectedAgentSource === 'deployed') {
-        setSessionError(
-          'No agent has been deployed yet from the Write page. Go to /deploy to create one first.'
-        );
-      } else {
-        setSessionError('No hand-made agent ID configured in ELEVENLABS_AGENT_ID.');
+    setSessionError(null);
+
+    let agentIdToUse = activeAgentId;
+
+    // If no agent ID exists yet, but user has a draft config from the Write page:
+    if (!agentIdToUse && draftConfig) {
+      try {
+        setIsStarting(true);
+        addEvent('Connecting Agent', `Preparing voice session for "${draftConfig.name || 'Assistant'}"...`);
+        const createRes = await fetch('/api/agents/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: draftConfig }),
+        });
+        const createData = await createRes.json();
+        if (createRes.ok && createData.agentId) {
+          agentIdToUse = createData.agentId;
+          setDeployedAgentId(createData.agentId);
+          setSelectedAgentSource('deployed');
+          try {
+            window.localStorage.setItem(
+              DEPLOYMENT_STORAGE_KEY,
+              JSON.stringify({
+                agentId: createData.agentId,
+                name: createData.name || draftConfig.name,
+                createdAt: createData.createdAt || new Date().toISOString(),
+                isSample: createData.isSample,
+                status: createData.status,
+              })
+            );
+          } catch {}
+          addEvent('Agent Ready', `Voice agent active: ${createData.agentId}`);
+        } else {
+          throw new Error(createData.error || 'Failed to prepare voice agent for testing.');
+        }
+      } catch (err: any) {
+        setIsStarting(false);
+        setSessionError(err.message || 'Failed to prepare voice agent for testing.');
+        return;
       }
+    }
+
+    if (!agentIdToUse) {
+      setSessionError(
+        'No voice assistant found. Please go to the Write page to describe and generate your assistant first.'
+      );
       return;
     }
 
-    setSessionError(null);
     setIsStarting(true);
 
     // 1. Microphone access check
@@ -260,7 +318,7 @@ function TestConversationInner() {
       const res = await fetch('/api/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: activeAgentId }),
+        body: JSON.stringify({ agentId: agentIdToUse }),
       });
       const data = await res.json();
 
@@ -498,11 +556,11 @@ function TestConversationInner() {
               type="button"
               id="select-deployed"
               onClick={() => {
-                if (deployedAgentId) setSelectedAgentSource('deployed');
+                setSelectedAgentSource('deployed');
               }}
-              disabled={!deployedAgentId}
+              disabled={!deployedAgentId && !draftConfig}
               className={`p-3 rounded-xl border text-left transition-all ${
-                !deployedAgentId
+                !deployedAgentId && !draftConfig
                   ? 'opacity-60 cursor-not-allowed border-gray-200 bg-gray-50'
                   : selectedAgentSource === 'deployed'
                   ? 'border-[#0F3D3E] bg-[#E8F1EF] ring-2 ring-[#0F3D3E] shadow-sm'
@@ -520,7 +578,11 @@ function TestConversationInner() {
                 )}
               </div>
               <p className="text-[11px] text-gray-600 font-mono break-all">
-                {deployedAgentId ? deployedAgentId : 'Not deployed yet on /deploy'}
+                {deployedAgentId
+                  ? deployedAgentId
+                  : draftConfig
+                  ? `Ready from Write draft (${draftConfig.name || 'Assistant'})`
+                  : 'No draft assistant found on Write page'}
               </p>
             </button>
           </div>
