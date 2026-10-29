@@ -133,52 +133,6 @@ export default function WritePage() {
   const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
 
-  // Escalation tool test state
-  const [isTestingTransfer, setIsTestingTransfer] = useState<boolean>(false);
-  const [transferResult, setTransferResult] = useState<string | null>(null);
-
-  const handleTestTransfer = async () => {
-    setIsTestingTransfer(true);
-    setTransferResult(null);
-    const targetPhone =
-      config?.transferPhoneNumber || config?.knowledge?.contact || '+91 98765 43210';
-    try {
-      const res = await fetch('/api/webhooks/escalate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          callerName: 'Sarah Jenkins',
-          callerPhone: '+91 98765 11111',
-          transferPhone: targetPhone,
-          reason: 'Caller requested human front-desk team member',
-          notes: `Live call transferred directly to human staff at ${targetPhone}`,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Call transfer failed');
-      setTransferResult(`✓ Call connected! Call transferred to staff at ${targetPhone}.`);
-      if (typeof window !== 'undefined') {
-        const cleanPhone = targetPhone.replace(/[^0-9+]/g, '');
-        if (cleanPhone) {
-          try {
-            const a = document.createElement('a');
-            a.href = `tel:${cleanPhone}`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          } catch {
-            // Ignore in environments without a telephone handler
-          }
-        }
-      }
-      setTimeout(() => setTransferResult(null), 8000);
-    } catch (err: any) {
-      setTransferResult(`⚠️ ${err.message || 'Call transfer failed'}`);
-    } finally {
-      setIsTestingTransfer(false);
-    }
-  };
 
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1688,44 +1642,19 @@ export default function WritePage() {
                       >
                         Staff Phone Number to Call:
                       </label>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <input
-                          id="staff-transfer-phone"
-                          type="tel"
-                          value={
-                            config.transferPhoneNumber ??
-                            config.knowledge?.contact ??
-                            '+91 98765 43210'
-                          }
-                          onChange={(e) => updateConfigField('transferPhoneNumber', e.target.value)}
-                          placeholder="+91 98765 43210 or Front Desk Phone"
-                          aria-label="Staff Phone Number to Call"
-                          className="p-2.5 rounded-xl border border-[#1F8A84]/30 font-mono text-xs font-bold text-[#0F3D3E] bg-white flex-1 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleTestTransfer}
-                          disabled={isTestingTransfer}
-                          className="px-4 py-2.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-1.5 shadow-2xs shrink-0"
-                          title="Dial this phone number"
-                        >
-                          <span>{isTestingTransfer ? 'Dialing...' : '📞 Call to Person'}</span>
-                        </button>
-                      </div>
-                      {transferResult && (
-                        <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 p-3 rounded-xl border border-emerald-200 animate-fadeIn space-y-1">
-                          <p className="font-semibold">{transferResult}</p>
-                          <p className="text-[11px] text-emerald-700">
-                            If your device did not automatically prompt its phone dialer, you can also{' '}
-                            <a
-                              href={`tel:${(config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210').replace(/[^0-9+]/g, '')}`}
-                              className="underline font-bold hover:text-emerald-950"
-                            >
-                              click here to dial directly
-                            </a>.
-                          </p>
-                        </div>
-                      )}
+                      <input
+                        id="staff-transfer-phone"
+                        type="tel"
+                        value={
+                          config.transferPhoneNumber ??
+                          config.knowledge?.contact ??
+                          '+91 98765 43210'
+                        }
+                        onChange={(e) => updateConfigField('transferPhoneNumber', e.target.value)}
+                        placeholder="+91 98765 43210 or Front Desk Phone"
+                        aria-label="Staff Phone Number to Call"
+                        className="w-full p-2.5 rounded-xl border border-[#1F8A84]/30 font-mono text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                      />
                     </div>
                   </div>
 

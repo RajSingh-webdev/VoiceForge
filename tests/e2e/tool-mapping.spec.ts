@@ -128,10 +128,8 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     const staffPhoneInput = page.locator('#staff-transfer-phone');
     await expect(staffPhoneInput).toBeVisible();
 
-    const testTransferBtn = page.locator('button:has-text("Call to Person")');
-    await expect(testTransferBtn).toBeVisible();
-    await testTransferBtn.click();
-    await expect(page.locator('text=Call transferred to staff')).toBeVisible();
+    // Verify Call to Person button is removed as requested
+    await expect(page.locator('button:has-text("Call to Person")')).toHaveCount(0);
 
     // Appointment Booking Webhook should appear with direct webhook input (test/view buttons removed as requested)
     const bookingInput = page.locator('input[value="Appointment Booking Webhook"]');

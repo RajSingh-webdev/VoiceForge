@@ -807,21 +807,10 @@ export default function TestPage() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
                 Live Voice Test
               </h1>
-              {isRealVoice === false ? (
-                <SampleDataBadge />
-              ) : isRealVoice === true ? (
-                <span
-                  id="live-voice-badge"
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-sm"
-                  title="Connected to ElevenLabs conversational AI audio service."
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                  Live ElevenLabs Voice
-                </span>
-              ) : null}
+              {isRealVoice === false && <SampleDataBadge />}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
-              Real-time conversational voice test powered by the official ElevenLabs React SDK.
+              Provides a real-time voice test mode with transcript, latency and tool-call visibility.
             </p>
           </div>
         </div>

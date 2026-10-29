@@ -161,7 +161,7 @@ export function buildAgentSystemPrompt(config: AgentConfig): string {
 - Use ONLY the verified business facts given above.
 - NEVER invent prices, hours, services, or clinic policies.
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
-- Transfer to a human staff member immediately if the caller asks to speak to a person, mentions pain, or reports an emergency (verbally state that you are transferring their call to a person, and execute transfer_to_number to call ${config.transferPhoneNumber || config.knowledge?.contact || 'front desk staff at +91 98765 43210'}).
+- Escalation & Human Hand-off: If the caller asks to speak to a person, mentions pain, or reports an emergency: verbally inform them that you are connecting them to a team member and provide the direct staff contact (${config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210'}).
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
 - Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).
 - Concluding the Call & Hanging Up: When the caller says goodbye, indicates they are finished (e.g. "that's all", "no more questions", "thank you, bye", "धन्यवाद", "अलविदा"), or the conversation has reached a natural conclusion: warmly wish them well and immediately execute the end_call tool to hang up. Do not linger or repeatedly ask if they are still there once the conversation has concluded.`);
@@ -610,14 +610,6 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
           end_call: {
             name: 'end_call',
             type: 'system',
-          },
-          transfer_to_number: {
-            name: 'transfer_to_number',
-            type: 'system',
-            description: 'Transfer the ongoing call to a human staff member when the caller asks for a person, reports pain, or has an emergency.',
-            params: {
-              system_tool_type: 'transfer_to_number',
-            },
           },
         },
       },
