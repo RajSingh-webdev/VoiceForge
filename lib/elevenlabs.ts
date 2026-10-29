@@ -623,7 +623,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     asr: asrConfig,
     turn: {
       turn_timeout: 7,
-      silence_end_call_timeout: 15,
+      silence_end_call_timeout: 10, // Lowest supported ElevenLabs timeout (API requires 10s-7200s)
     },
   };
 
