@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     if (msg.includes('rejected') || msg.includes('invalid fields') || msg.includes('422')) {
       return NextResponse.json(
-        { error: 'ElevenLabs rejected the agent configuration. Please check that name, prompt, and greeting are valid.' },
+        { error: err?.message || 'ElevenLabs rejected the agent configuration.' },
         { status: 400 }
       );
     }

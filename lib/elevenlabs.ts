@@ -464,7 +464,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
   const systemPrompt = buildAgentSystemPrompt(config);
   const welcomeMessage = enforceAiDisclosure(config.welcomeMessage, config.name);
   const defaultVoiceId = process.env.ELEVENLABS_DEFAULT_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
-  const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || 'eleven_flash_v2_5';
+  const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || 'eleven_flash_v2';
 
   const hasHindi =
     Array.isArray(config.languages) &&
