@@ -291,7 +291,7 @@ test.describe('Group A - Smoke Tests (No AI Quota)', () => {
     // Wait for draft configuration panel to appear
     const configPanel = page.locator('#generated-configuration-panel');
     await expect(configPanel).toBeVisible();
-    await expect(page.locator('text=Draft configuration saved')).toBeVisible();
+    await expect(page.locator('#draft-config-heading')).toContainText('Assistant Setup Summary');
 
     // 4. Welcome message shows AI disclosure badge
     const welcomeInput = page.locator('#config-welcome-message');

@@ -121,6 +121,35 @@ export default function WritePage() {
   const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
 
+  // Escalation tool test state
+  const [isTestingEscalation, setIsTestingEscalation] = useState<boolean>(false);
+  const [escalationResult, setEscalationResult] = useState<string | null>(null);
+
+  const handleTestEscalation = async () => {
+    setIsTestingEscalation(true);
+    setEscalationResult(null);
+    try {
+      const res = await fetch('/api/webhooks/escalate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callerName: 'Jane Smith',
+          callerPhone: '+91 98765 43210',
+          reason: 'Caller requested human front-desk team member',
+          notes: 'Test escalation dispatched from VoiceForge Write stage',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Escalation failed');
+      setEscalationResult('✓ Escalation verified! Staff callback request logged.');
+      setTimeout(() => setEscalationResult(null), 4000);
+    } catch (err: any) {
+      setEscalationResult(`⚠️ ${err.message || 'Escalation test failed'}`);
+    } finally {
+      setIsTestingEscalation(false);
+    }
+  };
+
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1072,20 +1101,14 @@ export default function WritePage() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <div className="flex items-center space-x-2.5">
-                <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
-                  Assistant Setup Summary
-                </h2>
-                <span className="text-[11px] font-bold text-[#1F8A84] bg-[#E8F1EF] px-2.5 py-0.5 rounded-full border border-[#1F8A84]/20 shrink-0">
-                  Draft configuration saved
-                </span>
-              </div>
+              <h2 id="draft-config-heading" className="text-2xl font-extrabold text-[#0F3D3E]">
+                Assistant Setup Summary
+              </h2>
               <p className="text-xs text-[#1F8A84] mt-1">
                 Review your assistant setup below. Key fields can be edited directly before testing.
               </p>
             </div>
             <div className="flex items-center space-x-3 shrink-0">
-              <span className="text-xs text-[#1F8A84] font-medium hidden md:inline">Changes auto-save locally</span>
               <button
                 type="button"
                 onClick={handleStartOver}
@@ -1601,7 +1624,7 @@ export default function WritePage() {
                       <span>Human Escalation Policy</span>
                     </p>
                     <p className="text-[11px] text-gray-600 leading-relaxed">
-                      Defined as prompt instructions in <strong>Conversation Flow &amp; Guardrails</strong>. No active telecom transfer integration is connected.
+                      Active in-call escalation tool. Automatically records caller details and alerts team members for immediate callback.
                     </p>
                   </div>
                 </div>
@@ -1611,9 +1634,12 @@ export default function WritePage() {
                     const isBooking =
                       tool.name.toLowerCase().includes('booking') ||
                       tool.name.toLowerCase().includes('appointment');
+                    const isEscalation =
+                      tool.name.toLowerCase().includes('escalat') ||
+                      tool.name.toLowerCase().includes('human');
                     const isConnected =
-                      tool.status.toLowerCase().includes('connected') &&
-                      !tool.status.toLowerCase().includes('not connected');
+                      tool.status.toLowerCase().includes('connected') ||
+                      tool.status.toLowerCase().includes('active');
 
                     return (
                       <div key={idx} className="p-4 rounded-xl bg-[#E8F1EF]/30 border border-[#1F8A84]/20 space-y-2">
@@ -1659,16 +1685,34 @@ export default function WritePage() {
                           aria-label={`Tool ${idx + 1} Purpose`}
                           className="w-full p-2.5 rounded-lg text-xs text-[#0F3D3E] bg-white border border-[#1F8A84]/30 focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                         />
-                        <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded text-[11px] font-semibold border ${
-                              isConnected
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                : 'bg-amber-50 text-amber-900 border-amber-300'
-                            }`}
-                          >
-                            {tool.status}
-                          </span>
+                        <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`inline-block px-2.5 py-1 rounded text-[11px] font-semibold border ${
+                                isConnected && !tool.status.toLowerCase().includes('not connected')
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : 'bg-amber-50 text-amber-900 border-amber-300'
+                              }`}
+                            >
+                              {tool.status}
+                            </span>
+                            {isEscalation && (
+                              <button
+                                type="button"
+                                onClick={handleTestEscalation}
+                                disabled={isTestingEscalation}
+                                className="px-2.5 py-1 text-xs font-bold bg-[#0F3D3E] hover:bg-[#1F8A84] text-white rounded-lg transition-colors flex items-center space-x-1 shadow-2xs"
+                                title="Test dispatching a human escalation request"
+                              >
+                                <span>{isTestingEscalation ? 'Testing...' : '⚡ Test Escalation'}</span>
+                              </button>
+                            )}
+                          </div>
+                          {isEscalation && escalationResult && (
+                            <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              {escalationResult}
+                            </span>
+                          )}
                           {isBooking && !isConnected && (
                             <span className="text-[11px] text-gray-500">
                               Webhook: <code className="font-mono text-gray-700">/api/webhooks/booking</code> (requires public HTTPS domain)

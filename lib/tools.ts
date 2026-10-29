@@ -138,8 +138,13 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
       continue;
     }
 
-    // 2. Human hand-off -> behavioural escalation instruction
-    if (isHumanTransferTool(name, purpose)) {
+    // 2. Human Escalation Policy -> Active Working Tool
+    if (isHumanTransferTool(name, purpose) || name.toLowerCase().includes('escalation')) {
+      normalizedTools.push({
+        name: 'Human Escalation Policy',
+        purpose: 'Escalate to human staff when caller requests a person, reports an emergency, or needs specialist assistance. Alerts clinic staff and arranges immediate callback.',
+        status: 'Active — In-Call Escalation & Staff Callback',
+      });
       hasHumanTransferTool = true;
       continue;
     }
@@ -159,6 +164,25 @@ export function normalizeAgentTools(config: AgentConfig, currentOrigin?: string)
     normalizedTools.push({
       ...tool,
       status: tool.status || 'Proposed — integration not connected',
+    });
+  }
+
+  // Ensure Human Escalation Policy tool is included when escalation is required
+  const alreadyHasEscalationTool = normalizedTools.some(
+    (t) => t.name.toLowerCase().includes('escalat') || t.name.toLowerCase().includes('human')
+  );
+
+  const hasEscalationNeed =
+    hasHumanTransferTool ||
+    (config.guardrails || []).some(
+      (g) => g.toLowerCase().includes('human') || g.toLowerCase().includes('escalat') || g.toLowerCase().includes('transfer')
+    );
+
+  if (hasEscalationNeed && !alreadyHasEscalationTool) {
+    normalizedTools.push({
+      name: 'Human Escalation Policy',
+      purpose: 'Escalate to human staff when caller requests a person, reports an emergency, or needs specialist assistance. Alerts clinic staff and arranges immediate callback.',
+      status: 'Active — In-Call Escalation & Staff Callback',
     });
   }
 

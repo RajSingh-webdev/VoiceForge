@@ -55,9 +55,13 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     expect(catalogTool).toBeUndefined();
     expect(feeTool).toBeUndefined();
 
-    // 2. Human transfer router tool should NOT exist as a separate tool
-    const humanTransferTool = normalized.tools.find((t) => t.name.includes('Human Transfer'));
-    expect(humanTransferTool).toBeUndefined();
+    // 2. Legacy Human Transfer Router should be normalized to working Human Escalation Policy
+    const legacyRouter = normalized.tools.find((t) => t.name === 'Human Transfer Router');
+    expect(legacyRouter).toBeUndefined();
+
+    const escalationTool = normalized.tools.find((t) => t.name === 'Human Escalation Policy');
+    expect(escalationTool).toBeDefined();
+    expect(escalationTool?.status).toContain('Active');
 
     // 3. Human escalation should be present in guardrails as a behavioural instruction
     const hasEscalationGuardrail = normalized.guardrails.some(
@@ -84,7 +88,7 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     expect(httpsStatus.status).toContain('Connected');
   });
 
-  test('Write page loads normalized tools, displays capability guidance, and clears on Create New Assistant', async ({ page }) => {
+  test('Write page loads normalized tools, displays working Human Escalation tool, removes tags, and clears on Create New Assistant', async ({ page }) => {
     // Seed draft in localStorage with the 4 proposed tools
     await page.goto('/write');
     await page.evaluate((cfg) => {
@@ -97,6 +101,10 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     const setupHeading = page.locator('#draft-config-heading');
     await expect(setupHeading).toBeVisible();
 
+    // Verify tags are REMOVED as requested by user
+    await expect(page.locator('text=Draft configuration saved')).toHaveCount(0);
+    await expect(page.locator('text=Changes auto-save locally')).toHaveCount(0);
+
     // Verify "Create New Assistant" button is displayed
     const createNewBtn = page.locator('button:has-text("Create New Assistant")');
     await expect(createNewBtn).toBeVisible();
@@ -107,12 +115,21 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
 
     // Verify guidance cards for Knowledge Base and Human Escalation Policy
     await expect(page.locator('text=Course & Fee Information')).toBeVisible();
-    await expect(page.locator('text=Human Escalation Policy')).toBeVisible();
 
     // Course Catalog Lookup and Fee Structure Database should NOT appear in tool list
     await expect(page.locator('input[value="Course Catalog Lookup"]')).toHaveCount(0);
     await expect(page.locator('input[value="Fee Structure Database"]')).toHaveCount(0);
     await expect(page.locator('input[value="Human Transfer Router"]')).toHaveCount(0);
+
+    // Human Escalation Policy should appear as working tool with Test button
+    const escalationInput = page.locator('input[value="Human Escalation Policy"]');
+    await expect(escalationInput).toBeVisible();
+    await expect(page.locator('text=Active — In-Call Escalation & Staff Callback')).toBeVisible();
+
+    const testEscalationBtn = page.locator('button:has-text("⚡ Test Escalation")');
+    await expect(testEscalationBtn).toBeVisible();
+    await testEscalationBtn.click();
+    await expect(page.locator('text=Escalation verified')).toBeVisible();
 
     // Appointment Booking Webhook should appear with "Not connected" badge
     const bookingInput = page.locator('input[value="Appointment Booking Webhook"]');
