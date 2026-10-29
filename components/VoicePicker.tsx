@@ -462,8 +462,8 @@ export default function VoicePicker() {
           <p className="text-sm font-bold text-[#0F3D3E] truncate">
             {activeVoiceName}
           </p>
-          <p className="text-[10px] font-mono text-gray-500 truncate mt-0.5">
-            ID: {activeVoiceId}
+          <p className="text-[11px] text-gray-500 truncate mt-0.5">
+            Primary language voice
           </p>
         </div>
 
@@ -488,18 +488,10 @@ export default function VoicePicker() {
           <p className="text-sm font-bold text-[#0F3D3E] truncate">
             {activeHindiVoiceName}
           </p>
-          <p className="text-[10px] font-mono text-gray-500 truncate mt-0.5">
-            ID: {activeHindiVoiceId} · Model: <span className="font-semibold text-teal-900">eleven_flash_v2_5</span>
+          <p className="text-[11px] text-teal-700 font-medium truncate mt-0.5">
+            Natural Indian Hindi accent
           </p>
         </div>
-      </div>
-
-      {/* Multilingual Quality Explanatory Notice */}
-      <div className="mb-5 p-3 rounded-xl bg-[#E8F1EF]/60 border border-[#1F8A84]/20 text-[11px] text-[#0F3D3E] flex items-start space-x-2">
-        <span className="text-base shrink-0">💡</span>
-        <p className="leading-relaxed">
-          <span className="font-bold">Natural Hindi Accent Architecture:</span> VoiceForge applies your chosen Indian voice directly into ElevenLabs&apos; official <code className="bg-white/80 px-1 py-0.5 rounded font-mono text-[10px]">language_presets.hi.overrides.tts</code> with the <code className="bg-white/80 px-1 py-0.5 rounded font-mono text-[10px]">eleven_flash_v2_5</code> multilingual model. Callers speaking Hindi hear pure, natural Indian pronunciation without an unnatural Western accent.
-        </p>
       </div>
 
       {/* Live Agent Update Success Banner */}

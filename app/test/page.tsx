@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
-import SimulatedCallersPanel from '@/components/SimulatedCallersPanel';
 import { AgentDeployment, AgentConfig } from '@/lib/types';
 
 interface TranscriptItem {
@@ -735,38 +734,17 @@ function TestConversationInner() {
         </div>
       </div>
 
-      {/* Collapsible Test Scenarios & Stress Testing */}
-      <details className="bg-white p-5 rounded-2xl border border-[#1F8A84]/25 text-left text-xs group shadow-sm">
-        <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
-          <div className="flex items-center space-x-2">
-            <span className="text-base">🧪</span>
-            <span className="text-sm font-bold text-[#0F3D3E]">
-              Test Scenarios &amp; Stress Testing (Simulated Callers)
-            </span>
-            <span className="text-gray-400 font-normal hidden sm:inline">
-              — Test anger, medical emergency, elderly caller, jailbreak &amp; Hindi switch
-            </span>
-          </div>
-          <span className="text-xs text-[#1F8A84] font-semibold bg-[#E8F1EF] px-2.5 py-1 rounded-lg">
-            Show / Hide Scenarios
-          </span>
-        </summary>
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <SimulatedCallersPanel />
-        </div>
-      </details>
-
-      {/* Collapsible Technical Diagnostics & Telemetry Log */}
+      {/* Collapsible Call Activity Log */}
       <details className="bg-white p-4 rounded-2xl border border-gray-200 text-left text-xs group">
         <summary className="cursor-pointer font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
           <span className="flex items-center space-x-2">
             <span>⚡</span>
-            <span>Developer Diagnostics: SDK Audio Events &amp; Tools</span>
+            <span>Call Activity &amp; Events</span>
             <span className="text-gray-400 font-normal">
               ({events.length} event{events.length === 1 ? '' : 's'} recorded)
             </span>
           </span>
-          <span className="text-xs text-[#1F8A84] font-medium">Show / Hide Telemetry</span>
+          <span className="text-xs text-[#1F8A84] font-medium">Show / Hide Activity</span>
         </summary>
         <div className="mt-4 pt-4 border-t border-gray-100 max-h-[300px] overflow-y-auto space-y-2 pr-1">
           {events.map((evt) => (
@@ -788,7 +766,7 @@ function TestConversationInner() {
 
           {events.length === 0 && (
             <div className="py-6 text-center text-xs text-gray-400 italic">
-              No SDK audio events recorded yet. Connect and speak to stream real-time telemetry.
+              No call activity recorded yet. Start a conversation to view real-time events.
             </div>
           )}
         </div>
