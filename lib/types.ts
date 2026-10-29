@@ -36,8 +36,11 @@ export interface AgentConfig {
   goals: string[];
   flowSteps: FlowStep[];
   welcomeMessage: string;
+  welcomeMessageHindi?: string;
   languages: string[];
   voiceSuggestion: string;
+  voiceId?: string;
+  voiceName?: string;
   guardrails: string[];
   tools: ProposedTool[];
   knowledge?: ExtractedFacts;
@@ -101,6 +104,31 @@ export interface AgentDeployment {
   createdAt: string;
   isSample: boolean;
   name?: string;
+}
+
+export interface AgentSyncState {
+  hash: string;
+  syncedAt: string;
+  agentId?: string;
+}
+
+export interface VoiceItem {
+  voiceId: string;
+  name: string;
+  category?: string;
+  description?: string;
+  labels?: {
+    accent?: string;
+    age?: string;
+    gender?: string;
+    use_case?: string;
+    description?: string;
+    language?: string;
+    [key: string]: string | undefined;
+  };
+  supportedLanguages?: string[];
+  previewUrl?: string;
+  isSample?: boolean;
 }
 
 export function isValidAgentConfig(data: any): data is AgentConfig {

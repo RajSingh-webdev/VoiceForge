@@ -63,6 +63,20 @@ function checkAiDisclosure(text: string): boolean {
   );
 }
 
+function checkHindiAiDisclosure(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  return (
+    /\bai\b/.test(lower) ||
+    lower.includes('एआई') ||
+    lower.includes('आर्टिफिशियल इंटेलिजेंस') ||
+    lower.includes('virtual assistant') ||
+    lower.includes('सहायक') ||
+    lower.includes('assistant') ||
+    /\bbot\b/.test(lower) ||
+    lower.includes('बॉट')
+  );
+}
+
 function moveItem<T>(arr: T[], index: number, direction: 'up' | 'down'): T[] {
   const newArr = [...arr];
   const targetIndex = direction === 'up' ? index - 1 : index + 1;
@@ -189,7 +203,48 @@ export default function WritePage() {
         throw new Error('No configuration was returned by the server.');
       }
 
-      setConfig(data.config);
+      let generatedConfig = data.config;
+
+      // When config includes Hindi, provide immediate AI-disclosed default so UI displays immediately
+      if (
+        generatedConfig.languages?.some(
+          (l: string) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+        ) &&
+        !generatedConfig.welcomeMessageHindi
+      ) {
+        generatedConfig = {
+          ...generatedConfig,
+          welcomeMessageHindi: `नमस्ते! मैं ${generatedConfig.name || 'क्लिनिक'} का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?`,
+        };
+      }
+
+      setConfig(generatedConfig);
+
+      // Asynchronously refine the Hindi greeting using callLLM in background
+      if (
+        data.config.languages?.some(
+          (l: string) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+        ) &&
+        !data.config.welcomeMessageHindi
+      ) {
+        fetch('/api/agents/hindi-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            welcomeMessage: data.config.welcomeMessage,
+            name: data.config.name,
+          }),
+        })
+          .then((r) => r.json())
+          .then((hData) => {
+            if (hData && typeof hData.welcomeMessageHindi === 'string' && hData.welcomeMessageHindi.trim()) {
+              setConfig((prev) =>
+                prev ? { ...prev, welcomeMessageHindi: hData.welcomeMessageHindi.trim() } : prev
+              );
+            }
+          })
+          .catch(() => {});
+      }
 
       setTimeout(() => {
         const el = document.getElementById('generated-configuration-panel');
@@ -1081,6 +1136,42 @@ export default function WritePage() {
                 className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
               />
             </div>
+
+            {/* 2b. Hindi Welcome Message (when Hindi is enabled) */}
+            {config.languages?.some(
+              (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+            ) && (
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                  <label
+                    htmlFor="config-welcome-message-hindi"
+                    className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider"
+                  >
+                    Hindi Welcome Message (पहला संदेश)
+                  </label>
+                  {checkHindiAiDisclosure(config.welcomeMessageHindi || '') ? (
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                      ✓ AI identity confirmed (Hindi सहायक)
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
+                      ⚠️ Hindi greeting must identify as AI
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#1F8A84] mb-3">
+                  Spoken when the caller greets or speaks in Hindi. By policy, it must identify itself as an AI assistant.
+                </p>
+                <textarea
+                  id="config-welcome-message-hindi"
+                  rows={3}
+                  value={config.welcomeMessageHindi || ''}
+                  placeholder="नमस्ते! मैं Smile Dental का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?"
+                  onChange={(e) => updateConfigField('welcomeMessageHindi', e.target.value)}
+                  className="w-full p-3 rounded-lg border border-[#1F8A84]/30 text-sm text-[#0F3D3E] focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
+                />
+              </div>
+            )}
 
             {/* 3. Conversation Flow - Fully Editable List */}
             <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">

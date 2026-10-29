@@ -39,8 +39,63 @@ export async function POST(req: NextRequest) {
       status: deployment.status,
     });
   } catch (err: any) {
+    const msg: string = (err?.message || '').toLowerCase();
+
+    if (
+      msg.includes('restricted') ||
+      msg.includes('tier') ||
+      msg.includes('plan') ||
+      msg.includes('upgrade') ||
+      msg.includes('library voices') ||
+      msg.includes('subscription')
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'The selected voice is restricted on your current ElevenLabs plan. Please choose a default premade voice or upgrade your ElevenLabs subscription.',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (msg.includes('missing environment variable')) {
+      const varName = err.message.split(':')[1]?.trim() || 'configuration';
+      return NextResponse.json(
+        { error: `Missing server configuration: ${varName}. Please configure it in server environment.` },
+        { status: 500 }
+      );
+    }
+
+    if (msg.includes('invalid') && (msg.includes('api key') || msg.includes('401'))) {
+      return NextResponse.json(
+        { error: 'Invalid ElevenLabs API key. Please check your credentials.' },
+        { status: 401 }
+      );
+    }
+
+    if (msg.includes('permission') || msg.includes('403')) {
+      return NextResponse.json(
+        { error: 'Permission missing. Your ElevenLabs API key lacks Conversational AI agent creation permissions.' },
+        { status: 403 }
+      );
+    }
+
+    if (msg.includes('quota') || msg.includes('credit') || msg.includes('429')) {
+      return NextResponse.json(
+        { error: 'ElevenLabs quota limit reached or insufficient account credits to create an agent.' },
+        { status: 429 }
+      );
+    }
+
+    if (msg.includes('rejected') || msg.includes('invalid fields') || msg.includes('422')) {
+      return NextResponse.json(
+        { error: 'ElevenLabs rejected the agent configuration. Please check that name, prompt, and greeting are valid.' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: err?.message || 'Failed to create agent in ElevenLabs.' },
+      { error: 'Failed to create agent in ElevenLabs. Please try again.' },
       { status: 500 }
     );
   }

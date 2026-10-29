@@ -4,21 +4,26 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
+import AgentSyncStatus from '@/components/AgentSyncStatus';
+import VoicePicker from '@/components/VoicePicker';
 import { useAgentConfig } from '@/lib/useAgentConfig';
 import { AgentDeployment } from '@/lib/types';
+import { computeConfigHash, setSavedSyncState } from '@/lib/sync';
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
+const DEPLOY_COUNT_KEY = 'voiceforge:deploy_count';
 
 export default function DeployPage() {
   const { config, isLoaded } = useAgentConfig();
   const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
+  const [createdCount, setCreatedCount] = useState<number>(0);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedSnippet, setCopiedSnippet] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
 
-  // Read stored deployment on mount
+  // Read stored deployment and creation count on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
@@ -30,6 +35,16 @@ export default function DeployPage() {
             setDeployment(parsed);
           }
         }
+
+        const storedCount = window.localStorage.getItem(DEPLOY_COUNT_KEY);
+        if (storedCount) {
+          const parsedCount = parseInt(storedCount, 10);
+          if (!isNaN(parsedCount)) {
+            setCreatedCount(parsedCount);
+          }
+        } else if (stored) {
+          setCreatedCount(1);
+        }
       } catch {
         // Fallback
       }
@@ -38,6 +53,15 @@ export default function DeployPage() {
 
   const handleCreateAgent = async () => {
     if (!config) return;
+
+    // Requirement 4: If an agent already exists, ask for confirmation before creating another one, and say how many have been created.
+    if (deployment || createdCount > 0) {
+      const count = createdCount > 0 ? createdCount : 1;
+      const confirmed = window.confirm(
+        `An agent already exists (${count} agent${count === 1 ? '' : 's'} created so far). Are you sure you want to create another one in ElevenLabs?`
+      );
+      if (!confirmed) return;
+    }
 
     setIsCreating(true);
     setErrorMessage(null);
@@ -59,13 +83,20 @@ export default function DeployPage() {
       const newDeployment: AgentDeployment = {
         agentId: data.agentId,
         createdAt: data.createdAt || new Date().toISOString(),
-        isSample: data.isSample ?? true,
+        isSample: data.isSample === false ? false : true,
         name: data.name || config.name,
       };
 
       setDeployment(newDeployment);
+      const nextCount = (createdCount || 0) + 1;
+      setCreatedCount(nextCount);
+
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(DEPLOYMENT_STORAGE_KEY, JSON.stringify(newDeployment));
+        window.localStorage.setItem(DEPLOY_COUNT_KEY, nextCount.toString());
+        if (newDeployment.isSample === false) {
+          setSavedSyncState(computeConfigHash(config), newDeployment.createdAt, newDeployment.agentId);
+        }
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred while deploying the agent.');
@@ -77,7 +108,7 @@ export default function DeployPage() {
   const shareUrl = deployment ? `${origin}/agent/${deployment.agentId}` : '';
 
   const widgetSnippet = deployment
-    ? `<!-- VoiceForge Voice Assistant Widget -->\n<!-- Sample snippet. The real widget code will use your ElevenLabs agent ID once connected. -->\n<div id="voiceforge-agent" data-agent-id="${deployment.agentId}"></div>\n<!-- Official widget script will be provided upon ElevenLabs connection -->`
+    ? `<!-- VoiceForge Voice Assistant Widget (Not connected yet) -->\n<!-- Sample snippet. The real widget code will use your ElevenLabs agent ID once connected. -->\n<div id="voiceforge-agent" data-agent-id="${deployment.agentId}"></div>\n<!-- Official widget script will be provided upon ElevenLabs connection -->`
     : '';
 
   const handleCopyLink = () => {
@@ -151,6 +182,11 @@ export default function DeployPage() {
                 {deployment
                   ? `Active Agent ID: ${deployment.agentId} · Published ${new Date(deployment.createdAt).toLocaleDateString()}`
                   : 'Generate your deployment credentials to unlock your share link, embed widget, and simulated phone flow.'}
+                {createdCount > 0 && (
+                  <span className="block text-[11px] text-gray-500 mt-0.5">
+                    Total created: {createdCount} agent{createdCount === 1 ? '' : 's'}
+                  </span>
+                )}
               </p>
             </div>
 
@@ -174,9 +210,21 @@ export default function DeployPage() {
                   <span>Connecting ElevenLabs...</span>
                 </>
               ) : (
-                <span>{deployment ? 'Re-sync / Create agent' : '🚀 Create agent'}</span>
+                <span>{deployment ? 'Re-create agent' : '🚀 Create agent'}</span>
               )}
             </button>
+          </div>
+
+          {/* Sync Status for Deployed Agent */}
+          {deployment && (
+            <div className="mb-8">
+              <AgentSyncStatus config={config} />
+            </div>
+          )}
+
+          {/* Voice Picker Section */}
+          <div className="mb-8">
+            <VoicePicker />
           </div>
 
           {/* Error Message */}
@@ -262,9 +310,9 @@ export default function DeployPage() {
                       Embed this assistant directly onto your business homepage.
                     </p>
 
-                    {/* Notice required by specification */}
+                    {/* Notice required by specification: Clearly labelled as not connected yet */}
                     <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
-                      <strong>Sample snippet.</strong> The real widget code will use your ElevenLabs agent ID once connected.
+                      <strong>Not connected yet.</strong> Sample snippet. The real widget code will use your ElevenLabs agent ID once connected.
                     </div>
 
                     <pre className="p-2.5 rounded-lg bg-gray-900 text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-36 mb-4 whitespace-pre-wrap select-all">
@@ -291,7 +339,7 @@ export default function DeployPage() {
                         📞
                       </div>
                       <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                        Simulated
+                        Not connected yet (Simulated)
                       </span>
                     </div>
 
@@ -333,7 +381,7 @@ export default function DeployPage() {
 
                   <div className="pt-2 border-t border-gray-100 text-center">
                     <p className="text-[10px] text-gray-500 italic">
-                      No pretend calling — phone flow connects with live carrier API keys.
+                      Not connected yet — no pretend calling. Live telephony connects with carrier API keys.
                     </p>
                   </div>
                 </div>
@@ -350,7 +398,7 @@ export default function DeployPage() {
                       Current status of your assistant deployment across live vs. sample components.
                     </p>
                   </div>
-                  <SampleDataBadge />
+                  {deployment.isSample && <SampleDataBadge />}
                 </div>
 
                 <div className="divide-y divide-gray-100">
@@ -374,50 +422,64 @@ export default function DeployPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          Live ElevenLabs agent
+                          Live ElevenLabs agent ({deployment.agentId})
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Item 2: Widget */}
+                  {/* Item 2: Web Preview Link */}
                   <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-start space-x-3">
                       <span className="text-emerald-600 font-bold text-base">✓</span>
+                      <div>
+                        <p className="text-xs font-bold text-[#0F3D3E]">
+                          Standalone Public Web Preview
+                        </p>
+                        <p className="text-[11px] text-gray-600">
+                          Accessible on creating device via /agent/{deployment.agentId}.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-900 border border-teal-300 shrink-0">
+                      Device-local link
+                    </span>
+                  </div>
+
+                  {/* Item 3: Embed Widget */}
+                  <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-start space-x-3">
+                      <span className="text-gray-400 font-bold text-base">•</span>
                       <div>
                         <p className="text-xs font-bold text-[#0F3D3E]">
                           Website Embed Widget
                         </p>
                         <p className="text-[11px] text-gray-600">
-                          Embed snippet generated with active agent identifier.
+                          Snippet placeholder generated with active agent ID. Not connected to CDN script yet.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                        Using sample widget placeholder
-                      </span>
-                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-300 shrink-0">
+                      Not connected yet
+                    </span>
                   </div>
 
-                  {/* Item 3: Phone */}
+                  {/* Item 4: Phone */}
                   <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-start space-x-3">
-                      <span className="text-emerald-600 font-bold text-base">✓</span>
+                      <span className="text-gray-400 font-bold text-base">•</span>
                       <div>
                         <p className="text-xs font-bold text-[#0F3D3E]">
-                          Inbound Telephony Flow
+                          Inbound Phone Line
                         </p>
                         <p className="text-[11px] text-gray-600">
-                          3-step architectural routing defined for real-time streaming audio.
+                          Simulated workflow displayed. Real telecom SIP trunking is not connected.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                        Simulated flow — no active carrier line
-                      </span>
-                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-300 shrink-0">
+                      Not connected yet
+                    </span>
                   </div>
                 </div>
               </div>

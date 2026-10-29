@@ -1,4 +1,4 @@
-import { Conversation } from './types';
+import { Conversation, AgentConfig, VoiceItem } from './types';
 
 function ensureServerSide() {
   if (typeof window !== 'undefined') {
@@ -12,6 +12,133 @@ function checkMockMode() {
   if (!isMock) {
     throw new Error('Real ElevenLabs calls are not connected yet');
   }
+}
+
+function checkAiDisclosure(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  return (
+    /\bai\b/.test(lower) ||
+    lower.includes('artificial intelligence') ||
+    lower.includes('virtual assistant') ||
+    lower.includes('automated assistant') ||
+    lower.includes('digital assistant') ||
+    /\bbot\b/.test(lower)
+  );
+}
+
+function enforceAiDisclosure(message: string, agentName: string): string {
+  if (checkAiDisclosure(message)) {
+    return message;
+  }
+  const prefix = agentName
+    ? `Hi, I am the AI assistant for ${agentName}.`
+    : 'Hi, I am an AI assistant.';
+  return `${prefix} ${message || ''}`.trim();
+}
+
+export function checkHindiAiDisclosure(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  return (
+    /\bai\b/.test(lower) ||
+    lower.includes('एआई') ||
+    lower.includes('आर्टिफिशियल इंटेलिजेंस') ||
+    lower.includes('virtual assistant') ||
+    lower.includes('सहायक') ||
+    lower.includes('assistant') ||
+    /\bbot\b/.test(lower) ||
+    lower.includes('बॉट')
+  );
+}
+
+export function enforceHindiAiDisclosure(message: string, agentName: string): string {
+  const trimmed = (message || '').trim();
+  if (trimmed && checkHindiAiDisclosure(trimmed)) {
+    return trimmed;
+  }
+  const prefix = agentName
+    ? `नमस्ते! मैं ${agentName} का AI सहायक हूँ।`
+    : 'नमस्ते! मैं एक AI सहायक हूँ।';
+  return trimmed ? `${prefix} ${trimmed}` : `${prefix} आज मैं आपकी क्या मदद कर सकता हूँ?`;
+}
+
+export function buildAgentSystemPrompt(config: AgentConfig): string {
+  const sections: string[] = [];
+
+  // 1. Identity & Persona
+  sections.push(
+    `### Persona & Role\n${config.persona || `You are an AI assistant for ${config.name}.`}`
+  );
+
+  // 2. Goals
+  if (config.goals && config.goals.length > 0) {
+    sections.push(`### Goals\n${config.goals.map((g) => `- ${g}`).join('\n')}`);
+  }
+
+  // 3. Conversation Flow Steps
+  if (config.flowSteps && config.flowSteps.length > 0) {
+    const stepsFormatted = config.flowSteps
+      .map((s, idx) => `${idx + 1}. **${s.title}**: ${s.instruction}`)
+      .join('\n');
+    sections.push(`### Conversation Flow\n${stepsFormatted}`);
+  }
+
+  // 4. Guardrails
+  if (config.guardrails && config.guardrails.length > 0) {
+    sections.push(
+      `### Guardrails & Policies\n${config.guardrails.map((gr) => `- ${gr}`).join('\n')}`
+    );
+  }
+
+  // 5. Business Facts (from config.knowledge when present)
+  if (config.knowledge) {
+    const k = config.knowledge;
+    const factsList: string[] = [];
+
+    if (k.business_name) {
+      factsList.push(`- **Business Name**: ${k.business_name}`);
+    }
+    if (k.business_type) {
+      factsList.push(`- **Business Type**: ${k.business_type}`);
+    }
+    if (k.opening_hours) {
+      factsList.push(`- **Opening Hours**: ${k.opening_hours}`);
+    }
+    if (k.contact) {
+      factsList.push(`- **Contact Information**: ${k.contact}`);
+    }
+    if (k.services && k.services.length > 0) {
+      factsList.push(
+        `- **Services Offered**:\n${k.services.map((s) => `  * ${s}`).join('\n')}`
+      );
+    }
+    if (k.prices && k.prices.length > 0) {
+      factsList.push(
+        `- **Pricing**:\n${k.prices.map((p) => `  * ${p.item}: ${p.price}`).join('\n')}`
+      );
+    }
+    if (k.faqs && k.faqs.length > 0) {
+      factsList.push(
+        `- **Frequently Asked Questions**:\n${k.faqs
+          .map((f) => `  * Q: ${f.question}\n    A: ${f.answer}`)
+          .join('\n')}`
+      );
+    }
+
+    if (factsList.length > 0) {
+      sections.push(`### Business Facts\n${factsList.join('\n')}`);
+    }
+  }
+
+  // 6. Mandatory Rules
+  sections.push(`### Core Operating Rules
+- You are an AI assistant. You must clearly say so at the start of the conversation.
+- Use ONLY the verified business facts given above.
+- NEVER invent prices, hours, services, or clinic policies.
+- If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
+- Transfer to a human staff member immediately if the caller asks to speak to a person, mentions pain, or reports an emergency (explain verbally that you are routing them to a human team member).
+- Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).`);
+
+  return sections.join('\n\n');
 }
 
 export const SAMPLE_CONVERSATIONS: Conversation[] = [
@@ -293,62 +420,666 @@ export const SAMPLE_CONVERSATIONS: Conversation[] = [
   },
 ];
 
-export async function createAgent(config: any): Promise<any> {
-  checkMockMode();
-  const slug = config?.name
-    ? config.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    : 'smile-dental';
-  return {
-    agentId: `sample-agent-${slug || 'smile-dental'}`,
-    name: config?.name || 'Smile Dental AI Assistant',
-    status: 'created (sample)',
-    isSample: true,
-    createdAt: new Date().toISOString(),
+export interface MappedElevenLabsAgentPayload {
+  payload: {
+    name: string;
+    conversation_config: {
+      agent: {
+        prompt: {
+          prompt: string;
+        };
+        first_message: string;
+        language: string;
+      };
+      tts: {
+        model_id: string;
+        voice_id: string;
+      };
+      asr?: {
+        provider: string;
+        quality: string;
+        user_input_audio_format: string;
+      };
+      language_presets?: Record<string, any>;
+    };
   };
+  systemPrompt: string;
+  welcomeMessage: string;
+  welcomeMessageHindi?: string;
+  hasHindi: boolean;
+  primaryLanguage: string;
+  languagePresets: Record<string, any>;
+  chosenVoiceId: string;
+}
+
+/**
+ * Shared mapping from AgentConfig to the ElevenLabs agent payload.
+ * Used by both createAgent and updateAgent so configuration and prompt logic cannot drift apart.
+ */
+export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenLabsAgentPayload {
+  if (!config || !config.name) {
+    throw new Error('Agent configuration must include a name.');
+  }
+
+  const systemPrompt = buildAgentSystemPrompt(config);
+  const welcomeMessage = enforceAiDisclosure(config.welcomeMessage, config.name);
+  const defaultVoiceId = process.env.ELEVENLABS_DEFAULT_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+  const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || 'eleven_flash_v2_5';
+
+  const hasHindi =
+    Array.isArray(config.languages) &&
+    config.languages.some(
+      (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+    );
+
+  let welcomeMessageHindi = '';
+  const languagePresets: Record<string, any> = {};
+
+  if (hasHindi) {
+    welcomeMessageHindi = enforceHindiAiDisclosure(
+      config.welcomeMessageHindi ||
+        (config.name
+          ? `नमस्ते! मैं ${config.name} का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?`
+          : 'नमस्ते! मैं एक AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?'),
+      config.name
+    );
+
+    languagePresets['hi'] = {
+      overrides: {
+        agent: {
+          first_message: welcomeMessageHindi,
+        },
+      },
+    };
+  }
+
+  const asrConfig = {
+    provider: 'scribe_realtime',
+    quality: 'high',
+    user_input_audio_format: 'pcm_16000',
+  };
+
+  const chosenVoiceId =
+    config?.voiceId && typeof config.voiceId === 'string' && config.voiceId.trim()
+      ? config.voiceId.trim()
+      : defaultVoiceId;
+
+  const conversationConfig: any = {
+    agent: {
+      prompt: {
+        prompt: systemPrompt,
+      },
+      first_message: welcomeMessage,
+      language: 'en',
+    },
+    tts: {
+      model_id: ttsModelId,
+      voice_id: chosenVoiceId,
+    },
+    asr: asrConfig,
+  };
+
+  if (hasHindi && Object.keys(languagePresets).length > 0) {
+    conversationConfig.language_presets = languagePresets;
+  }
+
+  return {
+    payload: {
+      name: config.name,
+      conversation_config: conversationConfig,
+    },
+    systemPrompt,
+    welcomeMessage,
+    welcomeMessageHindi: hasHindi ? welcomeMessageHindi : undefined,
+    hasHindi,
+    primaryLanguage: 'en',
+    languagePresets,
+    chosenVoiceId,
+  };
+}
+
+// In-memory mock store for consistent agent state in mock mode
+const mockAgentStore = new Map<
+  string,
+  {
+    name: string;
+    conversation_config: any;
+  }
+>();
+
+export async function createAgent(config: any): Promise<any> {
+  ensureServerSide();
+  const isRealAgents = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+
+  if (!isRealAgents) {
+    // Keep existing mock behaviour
+    checkMockMode();
+    const slug = config?.name
+      ? config.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '')
+      : 'smile-dental';
+    const sampleId = `sample-agent-${slug || 'smile-dental'}`;
+    const mapped = mapConfigToElevenLabsPayload(config);
+    mockAgentStore.set(sampleId, {
+      name: config.name,
+      conversation_config: mapped.payload.conversation_config,
+    });
+    return {
+      agentId: sampleId,
+      name: config?.name || 'Smile Dental AI Assistant',
+      status: 'created (sample)',
+      isSample: true,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  // Real ElevenLabs agent creation
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  if (!config || !config.name) {
+    throw new Error('Agent configuration must include a name.');
+  }
+
+  const { payload } = mapConfigToElevenLabsPayload(config);
+
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/convai/agents/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey.trim(),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Invalid ElevenLabs API key. Please check your credentials.');
+      }
+      if (res.status === 400 || res.status === 402 || res.status === 403 || res.status === 422) {
+        const errorData = await res.json().catch(() => null);
+        const detail =
+          errorData?.detail?.message || errorData?.detail || errorData?.message || '';
+        const detailStr = typeof detail === 'string' ? detail : JSON.stringify(detail);
+        const detailLower = detailStr.toLowerCase();
+        if (
+          detailLower.includes('tier') ||
+          detailLower.includes('plan') ||
+          detailLower.includes('library') ||
+          detailLower.includes('upgrade') ||
+          detailLower.includes('voice') ||
+          detailLower.includes('payment_required') ||
+          detailLower.includes('subscription')
+        ) {
+          throw new Error(
+            'The selected voice is restricted on your current ElevenLabs plan. Please choose a default premade voice or upgrade your ElevenLabs subscription.'
+          );
+        }
+        if (res.status === 403) {
+          throw new Error(
+            'Permission missing. Your ElevenLabs API key lacks Conversational AI agent creation permissions.'
+          );
+        }
+        throw new Error(
+          `ElevenLabs rejected configuration: ${detailStr || 'Invalid fields in agent configuration.'}`
+        );
+      }
+      if (res.status === 429) {
+        throw new Error('ElevenLabs quota limit reached or insufficient credits.');
+      }
+      throw new Error(`ElevenLabs returned HTTP ${res.status}.`);
+    }
+
+    const data = await res.json();
+    if (!data || typeof data.agent_id !== 'string') {
+      throw new Error('ElevenLabs did not return an agent ID.');
+    }
+
+    return {
+      agentId: data.agent_id,
+      name: config.name,
+      status: 'created',
+      isSample: false,
+      createdAt: new Date().toISOString(),
+    };
+  } catch (err: any) {
+    const sanitized = (err?.message || 'Failed to create agent in ElevenLabs')
+      .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED]')
+      .replace(/xi-api-key:[^\s]+/gi, 'xi-api-key: [REDACTED]');
+    throw new Error(sanitized);
+  }
+}
+
+export async function getAgent(agentId: string): Promise<any> {
+  ensureServerSide();
+  const cleanId = (agentId || '').trim();
+  if (!cleanId) {
+    throw new Error('Agent ID is required.');
+  }
+
+  const isReal =
+    process.env.ELEVENLABS_REAL_AGENTS === 'true' ||
+    process.env.ELEVENLABS_REAL_VOICE === 'true';
+
+  if (!isReal) {
+    const mockData = mockAgentStore.get(cleanId);
+    return {
+      agentId: cleanId,
+      name: mockData?.name || 'Sample Agent',
+      conversationConfig: mockData?.conversation_config || {
+        agent: {
+          prompt: { prompt: '' },
+          first_message: '',
+          language: 'en',
+        },
+        tts: {
+          model_id: 'eleven_flash_v2_5',
+          voice_id: '21m00Tcm4TlvDq8ikWAM',
+        },
+        language_presets: {},
+      },
+      isSample: true,
+    };
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const url = `https://api.elevenlabs.io/v1/convai/agents/${encodeURIComponent(cleanId)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error(`ElevenLabs agent not found: "${cleanId}" does not exist in this ElevenLabs workspace.`);
+      }
+      if (res.status === 401) {
+        throw new Error('Invalid ElevenLabs API key. Please check your credentials.');
+      }
+      if (res.status === 403) {
+        throw new Error('Permission missing to view this ElevenLabs agent.');
+      }
+      throw new Error(`ElevenLabs returned HTTP ${res.status} when looking up agent.`);
+    }
+
+    const data = await res.json();
+    return {
+      agentId: data.agent_id || cleanId,
+      name: data.name || 'ElevenLabs Agent',
+      conversationConfig: data.conversation_config,
+      isSample: false,
+    };
+  } catch (err: any) {
+    const sanitized = (err?.message || 'Failed to retrieve agent from ElevenLabs')
+      .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED]')
+      .replace(/xi-api-key:[^\s]+/gi, 'xi-api-key: [REDACTED]');
+    throw new Error(sanitized);
+  }
 }
 
 export async function updateAgent(agentId: string, config: any): Promise<any> {
-  checkMockMode();
-  return {
-    agentId,
-    name: config?.name || 'Smile Dental AI Assistant',
-    status: 'updated (sample)',
-    isSample: true,
-    updatedAt: new Date().toISOString(),
-  };
+  ensureServerSide();
+  const cleanId = (agentId || '').trim();
+  if (!cleanId) {
+    throw new Error('Agent ID is required.');
+  }
+
+  if (!config || !config.name) {
+    throw new Error('Agent configuration must include a name.');
+  }
+
+  const mapped = mapConfigToElevenLabsPayload(config);
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+
+  if (!isReal) {
+    checkMockMode();
+    mockAgentStore.set(cleanId, {
+      name: config.name,
+      conversation_config: mapped.payload.conversation_config,
+    });
+    return {
+      agentId: cleanId,
+      name: config?.name || 'Smile Dental AI Assistant',
+      status: 'updated (sample)',
+      isSample: true,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const url = `https://api.elevenlabs.io/v1/convai/agents/${encodeURIComponent(cleanId)}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey.trim(),
+      },
+      body: JSON.stringify(mapped.payload),
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Invalid ElevenLabs API key. Please check your credentials.');
+      }
+      if (res.status === 404) {
+        throw new Error(`ElevenLabs agent not found: "${cleanId}" does not exist in this ElevenLabs workspace.`);
+      }
+      if (res.status === 400 || res.status === 402 || res.status === 403 || res.status === 422) {
+        const errorData = await res.json().catch(() => null);
+        const detail =
+          errorData?.detail?.message || errorData?.detail || errorData?.message || '';
+        const detailStr = typeof detail === 'string' ? detail : JSON.stringify(detail);
+        const detailLower = detailStr.toLowerCase();
+        if (
+          detailLower.includes('tier') ||
+          detailLower.includes('plan') ||
+          detailLower.includes('library') ||
+          detailLower.includes('upgrade') ||
+          detailLower.includes('voice') ||
+          detailLower.includes('payment_required') ||
+          detailLower.includes('subscription')
+        ) {
+          throw new Error(
+            'The selected voice is restricted on your current ElevenLabs plan. Please choose a default premade voice or upgrade your ElevenLabs subscription.'
+          );
+        }
+        if (res.status === 403) {
+          throw new Error(
+            'Permission missing. Your ElevenLabs API key lacks Conversational AI agent update permissions.'
+          );
+        }
+        throw new Error(
+          `ElevenLabs rejected update configuration: ${detailStr || 'Invalid fields in agent update configuration.'}`
+        );
+      }
+      if (res.status === 429) {
+        throw new Error('ElevenLabs quota limit reached or insufficient credits.');
+      }
+      throw new Error(`ElevenLabs returned HTTP ${res.status} when updating agent.`);
+    }
+
+    return {
+      agentId: cleanId,
+      name: config.name,
+      status: 'updated',
+      isSample: false,
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (err: any) {
+    const sanitized = (err?.message || 'Failed to update agent in ElevenLabs')
+      .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED]')
+      .replace(/xi-api-key:[^\s]+/gi, 'xi-api-key: [REDACTED]');
+    throw new Error(sanitized);
+  }
 }
 
-export async function getSignedUrl(agentId?: string): Promise<{ signedUrl: string }> {
-  checkMockMode();
-  return {
-    signedUrl: `wss://api.elevenlabs.io/v1/convai/conversation?mock=true&agent_id=${agentId || 'sample-agent'}`,
-  };
+export async function getSignedUrl(agentIdOverride?: string): Promise<{ signedUrl: string }> {
+  ensureServerSide();
+
+  const isRealVoice = process.env.ELEVENLABS_REAL_VOICE === 'true';
+
+  if (!isRealVoice) {
+    // Mock mode
+    return {
+      signedUrl: `wss://api.elevenlabs.io/v1/convai/conversation?mock=true&agent_id=${agentIdOverride || 'sample-agent'}`,
+    };
+  }
+
+  // Real voice mode: Authenticate with ElevenLabs server-side
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  const agentId = (agentIdOverride || process.env.ELEVENLABS_AGENT_ID || '').trim();
+  if (!agentId) {
+    throw new Error('Missing environment variable: ELEVENLABS_AGENT_ID');
+  }
+
+  try {
+    const url = new URL('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url');
+    url.searchParams.set('agent_id', agentId);
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Invalid ElevenLabs API key. Please check your credentials.');
+      }
+      if (res.status === 403) {
+        throw new Error('Permission missing. Your ElevenLabs API key lacks Conversational AI permissions.');
+      }
+      if (res.status === 404) {
+        throw new Error('ElevenLabs agent not found. Please check your ELEVENLABS_AGENT_ID.');
+      }
+      if (res.status === 429) {
+        throw new Error('ElevenLabs quota limit reached or insufficient credits.');
+      }
+      throw new Error(`ElevenLabs returned HTTP ${res.status}.`);
+    }
+
+    const data = await res.json();
+    if (!data || typeof data.signed_url !== 'string') {
+      throw new Error('ElevenLabs did not return a valid signed URL.');
+    }
+
+    return {
+      signedUrl: data.signed_url,
+    };
+  } catch (err: any) {
+    // Sanitize any potential token leakage in error text
+    const sanitized = (err?.message || 'Failed to obtain signed URL from ElevenLabs')
+      .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED]')
+      .replace(/xi-api-key:[^\s]+/gi, 'xi-api-key: [REDACTED]');
+    throw new Error(sanitized);
+  }
 }
 
-export async function listVoices(): Promise<
-  Array<{ voiceId: string; name: string; category: string; description: string }>
-> {
-  checkMockMode();
-  return [
-    {
-      voiceId: 'mock-voice-rachel',
-      name: 'Rachel (Sample Voice)',
-      category: 'conversational',
-      description: 'Warm, friendly, clear female American voice for front-desk greetings.',
-    },
-    {
-      voiceId: 'mock-voice-drew',
-      name: 'Drew (Sample Voice)',
-      category: 'conversational',
-      description: 'Professional, articulate, reassuring male tone suited for medical practices.',
-    },
-    {
-      voiceId: 'mock-voice-aditi',
-      name: 'Aditi (Sample Voice)',
-      category: 'multilingual',
-      description: 'Natural bilingual Indian English and Hindi speaker with clean articulation.',
-    },
-  ];
+export async function listVoices(): Promise<VoiceItem[]> {
+  ensureServerSide();
+  const isReal = process.env.ELEVENLABS_REAL_AGENTS === 'true';
+
+  if (!isReal) {
+    checkMockMode();
+    return [
+      {
+        voiceId: '21m00Tcm4TlvDq8ikWAM',
+        name: 'Rachel (Sample Voice)',
+        category: 'conversational',
+        description: 'Warm, friendly, clear female American voice for front-desk greetings.',
+        labels: {
+          gender: 'female',
+          age: 'young',
+          accent: 'american',
+          use_case: 'conversational',
+          description: 'calm',
+        },
+        supportedLanguages: ['en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/previews/voices/21m00Tcm4TlvDq8ikWAM/american.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: '29vD33N1CtxCmqQRPOHJ',
+        name: 'Drew (Sample Voice)',
+        category: 'conversational',
+        description: 'Professional, articulate, reassuring male tone suited for medical practices.',
+        labels: {
+          gender: 'male',
+          age: 'middle aged',
+          accent: 'american',
+          use_case: 'conversational',
+          description: 'well-rounded',
+        },
+        supportedLanguages: ['en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/previews/voices/29vD33N1CtxCmqQRPOHJ/american.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: 'ThT5KcBeYPX3keUQqHPh',
+        name: 'Aditi (Sample Voice)',
+        category: 'multilingual',
+        description: 'Natural bilingual Indian English and Hindi speaker with clean articulation.',
+        labels: {
+          gender: 'female',
+          age: 'young',
+          accent: 'indian',
+          use_case: 'conversational',
+          description: 'bilingual',
+          language: 'hindi',
+        },
+        supportedLanguages: ['hi', 'en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/previews/voices/ThT5KcBeYPX3keUQqHPh/american.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+        name: 'George (Sample Voice)',
+        category: 'narration',
+        description: 'Warm, articulate British voice with mature authority.',
+        labels: {
+          gender: 'male',
+          age: 'middle aged',
+          accent: 'british',
+          use_case: 'narration',
+          description: 'warm',
+        },
+        supportedLanguages: ['en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/previews/voices/JBFqnCBsd6RMkjVDRZzb/british.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: '9BWtsMINqrJLrRacOk9x',
+        name: 'Aria (Sample Voice)',
+        category: 'expressive',
+        description: 'Expressive and engaging female voice with dynamic intonation.',
+        labels: {
+          gender: 'female',
+          age: 'middle aged',
+          accent: 'american',
+          use_case: 'characters',
+          description: 'expressive',
+        },
+        supportedLanguages: ['en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/previews/voices/9BWtsMINqrJLrRacOk9x/american.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: 'sample-voice-silent',
+        name: 'Silent Voice (No Preview Sample)',
+        category: 'utility',
+        description: 'Sample voice without a pre-recorded preview URL to verify UI fallback.',
+        labels: {
+          gender: 'neutral',
+          age: 'young',
+          accent: 'neutral',
+          use_case: 'characters',
+        },
+        supportedLanguages: [],
+        previewUrl: undefined,
+        isSample: true,
+      },
+    ];
+  }
+
+  // Real ElevenLabs voices list
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Missing environment variable: ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey.trim(),
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Invalid ElevenLabs API key. Please check your credentials.');
+      }
+      if (res.status === 403) {
+        throw new Error('Permission missing. Your ElevenLabs API key lacks permissions to list voices.');
+      }
+      if (res.status === 429) {
+        throw new Error('ElevenLabs quota limit reached or insufficient credits.');
+      }
+      throw new Error(`ElevenLabs returned HTTP ${res.status} when fetching voices.`);
+    }
+
+    const data = await res.json();
+    const rawVoices = Array.isArray(data?.voices) ? data.voices : [];
+
+    const mappedVoices: VoiceItem[] = rawVoices.map((v: any) => {
+      // Extract languages from verified_languages if present
+      const langs = new Set<string>();
+      if (Array.isArray(v.verified_languages)) {
+        for (const item of v.verified_languages) {
+          if (item?.language && typeof item.language === 'string') {
+            langs.add(item.language.toLowerCase());
+          }
+        }
+      }
+      if (v.labels?.language && typeof v.labels.language === 'string') {
+        langs.add(v.labels.language.toLowerCase());
+      }
+
+      const useCase =
+        v.labels?.['use case'] ||
+        v.labels?.use_case ||
+        v.labels?.['use-case'] ||
+        v.category ||
+        'conversational';
+
+      return {
+        voiceId: v.voice_id || '',
+        name: v.name || 'Unnamed Voice',
+        category: v.category || 'premade',
+        description: v.description || '',
+        labels: {
+          accent: v.labels?.accent || '',
+          age: v.labels?.age || '',
+          gender: v.labels?.gender || '',
+          use_case: useCase,
+          description: v.labels?.description || '',
+          language: v.labels?.language || '',
+        },
+        supportedLanguages: Array.from(langs),
+        previewUrl: v.preview_url || undefined,
+        isSample: false,
+      };
+    });
+
+    return mappedVoices;
+  } catch (err: any) {
+    const sanitized = (err?.message || 'Failed to list voices from ElevenLabs')
+      .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED]')
+      .replace(/xi-api-key:[^\s]+/gi, 'xi-api-key: [REDACTED]');
+    throw new Error(sanitized);
+  }
 }
 
 export async function listConversations(): Promise<Conversation[]> {

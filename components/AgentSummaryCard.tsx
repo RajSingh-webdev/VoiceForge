@@ -41,9 +41,14 @@ export default function AgentSummaryCard() {
         </Link>
       </div>
       <h3 className="text-base font-bold text-[#0F3D3E]">{config.name}</h3>
-      <p className="text-xs text-[#1F8A84] mt-1">
-        <strong>Languages:</strong> {config.languages.join(', ')}
-      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#1F8A84] mt-1">
+        <p>
+          <strong>Languages:</strong> {config.languages.join(', ')}
+        </p>
+        <p>
+          <strong>Voice:</strong> {config.voiceName || 'Rachel (Default)'}
+        </p>
+      </div>
     </div>
   );
 }

@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAgentConfig } from '@/lib/useAgentConfig';
-import { AgentConfig, FlowStep, ProposedTool } from '@/lib/types';
+import { AgentConfig, FlowStep, ProposedTool, AgentDeployment } from '@/lib/types';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
+import AgentSyncStatus from '@/components/AgentSyncStatus';
 
 interface HistoryEntry {
   id: string;
@@ -51,8 +52,9 @@ export default function RefinePage() {
   const [proposedChanges, setProposedChanges] = useState<Partial<AgentConfig> | null>(null);
   const [lastSubmittedRequest, setLastSubmittedRequest] = useState<string>('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
 
-  // Load history from localStorage on mount
+  // Load history & deployment from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -66,8 +68,19 @@ export default function RefinePage() {
       } catch {
         // Safe fallback
       }
+
+      try {
+        const storedDep = window.localStorage.getItem('voiceforge:deployment');
+        if (storedDep) {
+          setDeployment(JSON.parse(storedDep));
+        }
+      } catch {
+        // Safe fallback
+      }
     }
   }, []);
+
+  const isRealAgent = Boolean(deployment && !deployment.isSample);
 
   // Save history to localStorage
   const saveHistory = (newHistory: HistoryEntry[]) => {
@@ -201,9 +214,14 @@ export default function RefinePage() {
         <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex items-start space-x-3">
           <span className="text-[#1F8A84] text-base font-bold shrink-0">ℹ️</span>
           <p className="text-xs sm:text-sm text-[#0F3D3E] font-medium leading-relaxed">
-            Changes update your saved setup. The live voice agent will be updated once ElevenLabs is connected.
+            {isRealAgent
+              ? 'Changes reach the live agent when you click Update live agent.'
+              : 'Changes update your saved setup. The live voice agent will be updated once ElevenLabs is connected.'}
           </p>
         </div>
+
+        {/* Sync Status Banner */}
+        {config && <AgentSyncStatus config={config} className="mt-4" />}
       </header>
 
       {/* 1. Saved Agent Summary Card */}
