@@ -489,6 +489,9 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         agent: {
           first_message: welcomeMessageHindi,
         },
+        tts: {
+          model_id: 'eleven_flash_v2_5',
+        },
       },
     };
   }
@@ -678,7 +681,7 @@ export async function getAgent(agentId: string): Promise<any> {
           language: 'en',
         },
         tts: {
-          model_id: 'eleven_flash_v2_5',
+          model_id: 'eleven_flash_v2',
           voice_id: '21m00Tcm4TlvDq8ikWAM',
         },
         language_presets: {},

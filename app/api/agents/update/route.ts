@@ -145,6 +145,9 @@ export async function POST(req: NextRequest) {
         if (actualHindiGreeting && actualHindiGreeting !== welcomeMessageHindi.trim()) {
           languagePresetsMatch = false;
           hindiPresetDiff = 'Hindi welcome message differed from expected';
+        } else if (hindiPreset.overrides?.tts?.model_id && hindiPreset.overrides.tts.model_id !== 'eleven_flash_v2_5') {
+          languagePresetsMatch = false;
+          hindiPresetDiff = 'Hindi TTS model override differed from expected';
         }
       }
     }
