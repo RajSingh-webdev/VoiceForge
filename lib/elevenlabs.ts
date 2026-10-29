@@ -1336,6 +1336,7 @@ export async function listConversations(options?: {
       url.searchParams.set('agent_id', options.agentId.trim());
     }
     url.searchParams.set('sort_direction', 'desc');
+    url.searchParams.set('page_size', '50');
 
     const res = await fetch(url.toString(), {
       method: 'GET',
@@ -1364,26 +1365,65 @@ export async function listConversations(options?: {
     }
 
     const mapped: Conversation[] = rawList.map((item: any) => {
-      const durationSecs = item.metadata?.call_duration_secs || 0;
-      const startTime = item.metadata?.start_time_unix_secs
-        ? new Date(item.metadata.start_time_unix_secs * 1000).toISOString()
+      // ElevenLabs list response has these fields at TOP LEVEL (not inside metadata)
+      const durationSecs = item.call_duration_secs || item.metadata?.call_duration_secs || 0;
+      const startTimeUnix = item.start_time_unix_secs || item.metadata?.start_time_unix_secs;
+      const startTime = startTimeUnix
+        ? new Date(startTimeUnix * 1000).toISOString()
         : new Date().toISOString();
 
+      // Determine outcome from richer fields
       let outcome: any = 'Resolved';
-      if (item.metadata?.termination_reason === 'agent_hangup') {
-        outcome = 'Resolved';
-      } else if (item.status === 'failed') {
+      const sentiment = item.sentiment_analysis?.overall_label;
+      const callSuccessful = item.call_successful;
+      const terminationReason = item.termination_reason || item.metadata?.termination_reason || '';
+      const summaryTitle = (item.call_summary_title || '').toLowerCase();
+      const termReasonLower = terminationReason.toLowerCase();
+
+      if (
+        termReasonLower.includes('transfer') ||
+        termReasonLower.includes('human') ||
+        summaryTitle.includes('transfer') ||
+        summaryTitle.includes('manager')
+      ) {
+        outcome = 'Transferred to human';
+      } else if (
+        item.status === 'failed' ||
+        callSuccessful === 'failure' ||
+        sentiment === 'negative' ||
+        summaryTitle.includes('complaint') ||
+        summaryTitle.includes('angry')
+      ) {
         outcome = 'Flagged';
+      } else {
+        outcome = 'Resolved';
       }
+
+      // Determine language label
+      const langCode = item.main_language || 'en';
+      const languageLabel =
+        langCode === 'hi' ? 'Hindi' :
+        langCode === 'en' ? 'English' :
+        langCode.toUpperCase();
+
+      // Best available summary
+      const summary =
+        item.call_summary_title ||
+        item.transcript_summary ||
+        (terminationReason && terminationReason !== 'Client disconnected: 1000' ? terminationReason : null) ||
+        'Call recorded';
+
+      const convShort = (item.conversation_id || '').slice(-6);
+      const callerName = item.metadata?.caller_name || `Caller (${convShort})`;
 
       return {
         id: item.conversation_id,
-        callerName: item.metadata?.caller_name || `Caller (${item.conversation_id.slice(-6)})`,
+        callerName,
         startTime,
         duration: durationSecs,
-        language: 'English',
+        language: languageLabel,
         outcome,
-        summary: item.analysis?.call_summary || item.metadata?.termination_reason || 'Call recorded in ElevenLabs',
+        summary,
         transcript: [],
         isSample: false,
       };
@@ -1434,12 +1474,46 @@ export async function getConversation(conversationId: string): Promise<Conversat
     }
 
     const data = await res.json();
+
+    // ElevenLabs transcript entries use `message` field (not `text`)
+    // Filter out non-verbal entries (empty messages, tool_call entries)
     const transcript = Array.isArray(data.transcript)
-      ? data.transcript.map((t: any) => ({
-          role: t.role === 'user' ? 'caller' : 'agent',
-          text: t.message || '',
-        }))
+      ? data.transcript
+          .filter((t: any) => t.role && (t.message || '').trim().length > 0)
+          .map((t: any) => ({
+            role: (t.role === 'user' ? 'caller' : 'agent') as 'caller' | 'agent',
+            text: (t.message || '').trim(),
+          }))
       : [];
+
+    // Detect language from transcript or metadata
+    const mainLang = data.metadata?.main_language || data.main_language || 'en';
+    const languageLabel =
+      mainLang === 'hi' ? 'Hindi' :
+      mainLang === 'en' ? 'English' :
+      mainLang.toUpperCase();
+
+    // Best available outcome
+    let outcome: any = 'Resolved';
+    const termReason = (data.metadata?.termination_reason || '').toLowerCase();
+    const summaryTitle = (data.analysis?.call_summary_title || '').toLowerCase();
+    const sentimentLabel = data.analysis?.sentiment_analysis?.overall_label;
+
+    if (
+      termReason.includes('transfer') ||
+      termReason.includes('human') ||
+      summaryTitle.includes('transfer') ||
+      summaryTitle.includes('manager')
+    ) {
+      outcome = 'Transferred to human';
+    } else if (
+      data.status === 'failed' ||
+      sentimentLabel === 'negative' ||
+      summaryTitle.includes('complaint') ||
+      summaryTitle.includes('angry')
+    ) {
+      outcome = 'Flagged';
+    }
 
     return {
       id: data.conversation_id || cleanId,
@@ -1448,12 +1522,14 @@ export async function getConversation(conversationId: string): Promise<Conversat
         ? new Date(data.metadata.start_time_unix_secs * 1000).toISOString()
         : new Date().toISOString(),
       duration: data.metadata?.call_duration_secs || 0,
-      language: 'English',
-      outcome: data.status === 'failed' ? 'Flagged' : 'Resolved',
+      language: languageLabel,
+      outcome,
       summary:
+        data.analysis?.transcript_summary ||
+        data.analysis?.call_summary_title ||
         data.analysis?.call_summary ||
-        data.metadata?.termination_reason ||
-        'Call recorded in ElevenLabs',
+        (data.metadata?.termination_reason && data.metadata.termination_reason !== 'Client disconnected: 1000' ? data.metadata.termination_reason : null) ||
+        'Call recorded',
       transcript,
       isSample: false,
     };

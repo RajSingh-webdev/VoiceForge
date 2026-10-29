@@ -12,7 +12,7 @@ import {
   CallAnalysisResult,
   FixHistoryItem,
 } from '@/lib/types';
-import { getDeploymentForConfig } from '@/lib/sync';
+import { getDeploymentForConfig, isMatchingAgentName } from '@/lib/sync';
 
 const FIXES_STORAGE_KEY = 'voiceforge:fixes';
 const FIX_HISTORY_STORAGE_KEY = 'voiceforge:fix_history';
@@ -96,7 +96,7 @@ export default function ObservePage() {
   const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
   const [isSyncingLiveAgent, setIsSyncingLiveAgent] = useState<boolean>(false);
 
-  // Load applied fixes and history from localStorage
+  // Load applied fixes, history from localStorage, and detect deployed agent
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -127,6 +127,15 @@ export default function ObservePage() {
         const matched = getDeploymentForConfig(config);
         if (matched && matched.agentId) {
           setDeployedAgentId(matched.agentId);
+        } else if (config?.name && isMatchingAgentName(config.name, 'Smile Dental')) {
+          fetch('/api/voice/session')
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.handMadeAgentId) {
+                setDeployedAgentId(d.handMadeAgentId);
+              }
+            })
+            .catch(() => {});
         } else {
           setDeployedAgentId(null);
         }
@@ -140,7 +149,20 @@ export default function ObservePage() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const url = sourceOverride ? `/api/conversations?source=${sourceOverride}` : '/api/conversations';
+      // Build URL — pass agent_id so we only see this assistant's conversations
+      const params = new URLSearchParams();
+      if (sourceOverride) params.set('source', sourceOverride);
+      // Resolve deployed agent ID from localStorage at call time (may not be in state yet)
+      const agentIdToFilter = deployedAgentId || (() => {
+        try {
+          const dep = getDeploymentForConfig(config);
+          return dep?.agentId || null;
+        } catch { return null; }
+      })();
+      if (agentIdToFilter && sourceOverride !== 'sample') {
+        params.set('agent_id', agentIdToFilter);
+      }
+      const url = `/api/conversations${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) {
@@ -156,9 +178,11 @@ export default function ObservePage() {
     }
   };
 
+  // Re-fetch when the deployed agent ID becomes known
   useEffect(() => {
     fetchConversations();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deployedAgentId]);
 
   // Reset analysis when selected call changes & fetch full transcript if missing
   const handleSelectCall = async (call: Conversation) => {
@@ -335,33 +359,33 @@ export default function ObservePage() {
     // If deployed to ElevenLabs, synchronize and verify live agent via read-back
     if (deployedAgentId) {
       setIsSyncingLiveAgent(true);
-      fetch(`/api/agents/${encodeURIComponent(deployedAgentId)}`, {
-        method: 'PATCH',
+      fetch('/api/agents/update', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: updatedConfig }),
+        body: JSON.stringify({ agentId: deployedAgentId, config: updatedConfig }),
       })
         .then((r) => r.json())
         .then((data) => {
           if (data.verified) {
             setSyncStatusMessage(
-              `Fix applied to knowledge base and verified live with ElevenLabs agent "${deployedAgentId}" (read-back confirmed).`
+              `Fix applied and saved to your live assistant. Changes are now live.`
             );
           } else {
             setSyncStatusMessage(
-              `Fix saved to knowledge base. Live agent notice: ${data.error || 'Pending live synchronization.'}`
+              `Fix saved to your assistant. ${data.error ? 'Could not sync live: ' + data.error : 'Publish from the Deploy page to go live.'}`
             );
           }
         })
         .catch((err) => {
           setSyncStatusMessage(
-            `Fix saved locally. Live synchronization notice: ${err.message || 'Offline fallback'}`
+            `Fix saved locally. ${err.message || 'Could not reach your live assistant.'}`
           );
         })
         .finally(() => {
           setIsSyncingLiveAgent(false);
         });
     } else {
-      setSyncStatusMessage('Fix applied to assistant knowledge base.');
+      setSyncStatusMessage('Fix applied to your assistant knowledge base. Publish it from the Deploy page to go live.');
     }
 
     // Mark call as "Fix applied" in localStorage
@@ -511,7 +535,20 @@ export default function ObservePage() {
               onClick={() => fetchConversations(isSampleData ? 'real' : 'sample')}
               className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm"
             >
-              {isSampleData ? 'Switch to Live Calls' : 'Switch to Demo Calls (Apply Fix)'}
+              {isSampleData
+                ? deployedAgentId
+                  ? '🔄 Load my real calls'
+                  : '🔄 Try with live calls'
+                : '📋 Switch to demo calls'}
+            </button>
+            <button
+              type="button"
+              onClick={() => fetchConversations(isSampleData ? undefined : undefined)}
+              className="text-xs px-3 py-2 rounded-lg border border-[#1F8A84]/30 bg-white text-[#0F3D3E] font-semibold hover:bg-[#E8F1EF] transition-colors shadow-sm"
+              aria-label="Refresh calls"
+              title="Refresh"
+            >
+              ↻
             </button>
           </div>
         </div>
@@ -626,7 +663,7 @@ export default function ObservePage() {
               <span className="text-2xl sm:text-3xl font-extrabold text-[#0F3D3E] mt-1 block">
                 {totalCalls}
               </span>
-              <span className="text-[10px] text-gray-500 mt-0.5 block">Smile Dental</span>
+              <span className="text-[10px] text-gray-500 mt-0.5 block">{config?.name || 'Your assistant'}</span>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-[#1F8A84]/25 shadow-sm">
@@ -1168,7 +1205,7 @@ export default function ObservePage() {
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-bold text-[11px] uppercase tracking-wider text-[#0F3D3E]">
-                              {isAgent ? '🤖 Smile Dental AI' : `👤 ${selectedCall.callerName}`}
+                              {isAgent ? `🤖 ${config?.name || 'Assistant'}` : `👤 ${selectedCall.callerName}`}
                             </span>
                             <span className="text-[10px] text-gray-400">Turn {idx + 1}</span>
                           </div>
