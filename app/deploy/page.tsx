@@ -8,13 +8,13 @@ import AgentSyncStatus from '@/components/AgentSyncStatus';
 import VoicePicker from '@/components/VoicePicker';
 import { useAgentConfig } from '@/lib/useAgentConfig';
 import { AgentDeployment } from '@/lib/types';
-import { computeConfigHash, setSavedSyncState } from '@/lib/sync';
+import { computeConfigHash, setSavedSyncState, getDeploymentForConfig, saveDeploymentForConfig } from '@/lib/sync';
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
 const DEPLOY_COUNT_KEY = 'voiceforge:deploy_count';
 
 export default function DeployPage() {
-  const { config, isLoaded } = useAgentConfig();
+  const { config, setConfig, isLoaded } = useAgentConfig();
   const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
   const [createdCount, setCreatedCount] = useState<number>(0);
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -28,33 +28,27 @@ export default function DeployPage() {
   const [webhookTestResult, setWebhookTestResult] = useState<any>(null);
   const [webhookError, setWebhookError] = useState<string | null>(null);
 
-  // Read stored deployment and creation count on mount
+  // Read stored deployment for the active assistant configuration
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
+      if (isLoaded) {
+        const matched = getDeploymentForConfig(config);
+        setDeployment(matched);
+      }
       try {
-        const stored = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        if (stored) {
-          const parsed: AgentDeployment = JSON.parse(stored);
-          if (parsed && typeof parsed.agentId === 'string') {
-            setDeployment(parsed);
-          }
-        }
-
         const storedCount = window.localStorage.getItem(DEPLOY_COUNT_KEY);
         if (storedCount) {
           const parsedCount = parseInt(storedCount, 10);
           if (!isNaN(parsedCount)) {
             setCreatedCount(parsedCount);
           }
-        } else if (stored) {
-          setCreatedCount(1);
         }
       } catch {
         // Fallback
       }
     }
-  }, []);
+  }, [config, isLoaded]);
 
   const handleCreateAgent = async () => {
     if (!config) return;
@@ -63,7 +57,7 @@ export default function DeployPage() {
     if (deployment || createdCount > 0) {
       const count = createdCount > 0 ? createdCount : 1;
       const confirmed = window.confirm(
-        `An agent already exists (${count} agent${count === 1 ? '' : 's'} created so far). Are you sure you want to create another one in ElevenLabs?`
+        `An assistant already exists (${count} created so far). Are you sure you want to create another one in ElevenLabs?`
       );
       if (!confirmed) return;
     }
@@ -97,11 +91,16 @@ export default function DeployPage() {
       setCreatedCount(nextCount);
 
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(DEPLOYMENT_STORAGE_KEY, JSON.stringify(newDeployment));
+        saveDeploymentForConfig(config.name, newDeployment);
         window.localStorage.setItem(DEPLOY_COUNT_KEY, nextCount.toString());
         if (newDeployment.isSample === false) {
           setSavedSyncState(computeConfigHash(config), newDeployment.createdAt, newDeployment.agentId);
         }
+      }
+
+      // Also associate agentId directly with the draft config
+      if (data.agentId) {
+        setConfig((prev) => (prev ? { ...prev, agentId: data.agentId } : prev));
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred while deploying the agent.');

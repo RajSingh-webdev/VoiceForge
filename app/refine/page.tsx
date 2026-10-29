@@ -6,6 +6,7 @@ import { useAgentConfig } from '@/lib/useAgentConfig';
 import { AgentConfig, FlowStep, ProposedTool, AgentDeployment } from '@/lib/types';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import AgentSyncStatus from '@/components/AgentSyncStatus';
+import { getDeploymentForConfig } from '@/lib/sync';
 
 interface HistoryEntry {
   id: string;
@@ -70,15 +71,13 @@ export default function RefinePage() {
       }
 
       try {
-        const storedDep = window.localStorage.getItem('voiceforge:deployment');
-        if (storedDep) {
-          setDeployment(JSON.parse(storedDep));
-        }
+        const matched = getDeploymentForConfig(config);
+        setDeployment(matched);
       } catch {
         // Safe fallback
       }
     }
-  }, []);
+  }, [config]);
 
   const isRealAgent = Boolean(deployment && !deployment.isSample);
 

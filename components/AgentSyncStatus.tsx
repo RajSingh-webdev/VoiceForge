@@ -7,8 +7,11 @@ import {
   computeConfigHash,
   getSavedSyncState,
   setSavedSyncState,
+  getDeploymentForConfig,
+  isMatchingAgentName,
   DEPLOYMENT_STORAGE_KEY,
   SYNC_STORAGE_KEY,
+  DEPLOYMENTS_MAP_KEY,
 } from '@/lib/sync';
 import SampleDataBadge from './SampleDataBadge';
 
@@ -29,29 +32,29 @@ export default function AgentSyncStatus({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successInfo, setSuccessInfo] = useState<{ time: string } | null>(null);
 
-  // Read deployment & sync state from localStorage
+  // Read deployment & sync state from localStorage associated with current config
   const refreshStorage = useCallback(() => {
     if (typeof window === 'undefined') return;
     try {
-      const depRaw = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-      if (depRaw) {
-        setDeployment(JSON.parse(depRaw));
-      } else {
-        setDeployment(null);
-      }
+      const dep = getDeploymentForConfig(config);
+      setDeployment(dep);
 
       const sync = getSavedSyncState();
       setSyncState(sync);
     } catch {
       // Ignore parse errors
     }
-  }, []);
+  }, [config]);
 
   useEffect(() => {
     refreshStorage();
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === DEPLOYMENT_STORAGE_KEY || e.key === SYNC_STORAGE_KEY) {
+      if (
+        e.key === DEPLOYMENT_STORAGE_KEY ||
+        e.key === SYNC_STORAGE_KEY ||
+        e.key === DEPLOYMENTS_MAP_KEY
+      ) {
         refreshStorage();
       }
     };
@@ -98,18 +101,18 @@ export default function AgentSyncStatus({
     if (
       deployment.name &&
       config.name &&
-      deployment.name.trim().toLowerCase() !== config.name.trim().toLowerCase()
+      !isMatchingAgentName(deployment.name, config.name)
     ) {
-      const confirmedMismatch = window.confirm(
-        `Warning: Your current changes are for "${config.name}", but your active assistant is "${deployment.name}" (${deployment.agentId}).\n\nDo you want to update "${deployment.name}" with these changes?`
+      setErrorMessage(
+        `Cannot update: Your current changes are for "${config.name}", but the live assistant is "${deployment.name}". Please deploy "${config.name}" first.`
       );
-      if (!confirmedMismatch) return;
-    } else {
-      const confirmed = window.confirm(
-        'Save your changes and update your assistant?'
-      );
-      if (!confirmed) return;
+      return;
     }
+
+    const confirmed = window.confirm(
+      'Save your changes and update your assistant?'
+    );
+    if (!confirmed) return;
 
     setIsUpdating(true);
     setErrorMessage(null);

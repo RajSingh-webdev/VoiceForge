@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import SampleDataBadge from '@/components/SampleDataBadge';
 import { AgentConfig, AgentDeployment, isValidAgentConfig } from '@/lib/types';
+import { getDeploymentsMap, isMatchingAgentName } from '@/lib/sync';
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
 const AGENT_STORAGE_KEY = 'voiceforge:agent';
@@ -201,6 +202,14 @@ export default function PublicAgentPage() {
 
       // 1. Try local storage first
       try {
+        const map = getDeploymentsMap();
+        for (const dep of Object.values(map)) {
+          if (dep && dep.agentId === agentId) {
+            setDeployment(dep);
+            break;
+          }
+        }
+
         const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
         const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
 
@@ -208,7 +217,11 @@ export default function PublicAgentPage() {
           const parsedDeployment: AgentDeployment = JSON.parse(storedDeployment);
           const parsedAgent = JSON.parse(storedAgent);
 
-          if (parsedDeployment.agentId === agentId && isValidAgentConfig(parsedAgent)) {
+          if (
+            parsedDeployment.agentId === agentId &&
+            isValidAgentConfig(parsedAgent) &&
+            isMatchingAgentName(parsedDeployment.name, parsedAgent.name)
+          ) {
             setDeployment(parsedDeployment);
             setConfig(parsedAgent);
             setIsLoading(false);

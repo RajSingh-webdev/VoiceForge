@@ -47,6 +47,7 @@ export interface VoiceSettings {
 }
 
 export interface AgentConfig {
+  agentId?: string;
   name: string;
   persona: string;
   goals: string[];

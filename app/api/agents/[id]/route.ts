@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAgent, updateAgent } from '@/lib/elevenlabs';
 import { isSupabaseConfigured, getAgentFromDb, saveAgentToDb } from '@/lib/supabase';
 import { isValidAgentConfig } from '@/lib/types';
+import { isMatchingAgentName } from '@/lib/sync';
 
 export async function GET(
   req: Request,
@@ -61,6 +62,22 @@ export async function PATCH(
     if (!isValidAgentConfig(config)) {
       return NextResponse.json(
         { error: 'Invalid agent configuration provided.' },
+        { status: 400 }
+      );
+    }
+
+    // Verify existing agent identity
+    const existing = await getAgent(agentId).catch(() => null);
+    if (
+      existing?.name &&
+      config?.name &&
+      !body.allowNameChange &&
+      !isMatchingAgentName(existing.name, config.name)
+    ) {
+      return NextResponse.json(
+        {
+          error: `Agent identity mismatch: Cannot update agent "${existing.name}" (${agentId}) with configuration for "${config.name}".`,
+        },
         { status: 400 }
       );
     }

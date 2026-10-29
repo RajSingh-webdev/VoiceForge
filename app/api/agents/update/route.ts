@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAgent, updateAgent, mapConfigToElevenLabsPayload } from '@/lib/elevenlabs';
 import { AgentConfig } from '@/lib/types';
+import { isMatchingAgentName } from '@/lib/sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +55,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: `ElevenLabs agent "${cleanAgentId}" does not exist in this workspace.` },
         { status: 404 }
+      );
+    }
+
+    // Identity check: Prevent overwriting an agent belonging to a different assistant
+    // (e.g. updating Smile Dental with Spark Digital)
+    const existingName = existingAgent.name;
+    const incomingName = config.name;
+    const allowOverride = (body as any).allowNameChange === true;
+
+    if (
+      existingName &&
+      incomingName &&
+      !allowOverride &&
+      !isMatchingAgentName(existingName, incomingName)
+    ) {
+      return NextResponse.json(
+        {
+          error: `Agent identity mismatch: Cannot update live agent "${existingName}" (${cleanAgentId}) with configuration for "${incomingName}". Please create a separate assistant.`,
+        },
+        { status: 400 }
       );
     }
 

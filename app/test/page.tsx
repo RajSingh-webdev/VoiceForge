@@ -5,6 +5,7 @@ import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import AgentSummaryCard from '@/components/AgentSummaryCard';
 import SampleDataBadge from '@/components/SampleDataBadge';
 import { AgentDeployment, AgentConfig } from '@/lib/types';
+import { getDeploymentForConfig, saveDeploymentForConfig, isMatchingAgentName } from '@/lib/sync';
 
 interface TranscriptItem {
   id: string;
@@ -61,21 +62,19 @@ function TestConversationInner() {
     // Read stored deployment and draft agent from localStorage
     if (typeof window !== 'undefined') {
       try {
-        const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        if (storedDeployment) {
-          const parsed: AgentDeployment = JSON.parse(storedDeployment);
-          if (parsed && typeof parsed.agentId === 'string' && parsed.agentId.trim()) {
-            setDeployedAgentId(parsed.agentId.trim());
-            hasDeployed = true;
-          }
-        }
-
+        let parsedAgent: AgentConfig | null = null;
         const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
         if (storedAgent) {
-          const parsedAgent = JSON.parse(storedAgent);
+          parsedAgent = JSON.parse(storedAgent);
           if (parsedAgent && typeof parsedAgent === 'object') {
             setDraftConfig(parsedAgent);
           }
+        }
+
+        const matchedDeployment = getDeploymentForConfig(parsedAgent);
+        if (matchedDeployment && typeof matchedDeployment.agentId === 'string' && matchedDeployment.agentId.trim()) {
+          setDeployedAgentId(matchedDeployment.agentId.trim());
+          hasDeployed = true;
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -243,11 +242,12 @@ function TestConversationInner() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Resolve active agent ID: prefer currently selected source, falling back gracefully
+  // Resolve active agent ID: only use handMadeAgentId if draftConfig is Smile Dental, preventing cross-assistant overwrite
+  const isDentalDraft = draftConfig?.name ? isMatchingAgentName(draftConfig.name, 'Smile Dental') : false;
   const activeAgentId =
     selectedAgentSource === 'deployed'
-      ? (deployedAgentId || handMadeAgentId)
-      : (handMadeAgentId || deployedAgentId);
+      ? (deployedAgentId || (isDentalDraft ? handMadeAgentId : ''))
+      : (isDentalDraft ? handMadeAgentId : deployedAgentId);
 
   // Compute whether Hindi is the primary opening language
   const isHindiPrimary = Boolean(
@@ -318,8 +318,8 @@ function TestConversationInner() {
 
     let agentIdToUse = activeAgentId;
 
-    // Check if handMadeAgentId can be recovered from server
-    if (!agentIdToUse) {
+    // Check if handMadeAgentId can be recovered from server ONLY for Smile Dental
+    if (!agentIdToUse && isDentalDraft) {
       try {
         const sessionCheck = await fetch('/api/voice/session');
         const sessionData = await sessionCheck.json();
@@ -345,18 +345,13 @@ function TestConversationInner() {
           agentIdToUse = createData.agentId;
           setDeployedAgentId(createData.agentId);
           setSelectedAgentSource('deployed');
-          try {
-            window.localStorage.setItem(
-              DEPLOYMENT_STORAGE_KEY,
-              JSON.stringify({
-                agentId: createData.agentId,
-                name: createData.name || draftConfig.name,
-                createdAt: createData.createdAt || new Date().toISOString(),
-                isSample: createData.isSample,
-                status: createData.status,
-              })
-            );
-          } catch {}
+          const newDep: AgentDeployment = {
+            agentId: createData.agentId,
+            name: createData.name || draftConfig.name,
+            createdAt: createData.createdAt || new Date().toISOString(),
+            isSample: createData.isSample,
+          };
+          saveDeploymentForConfig(draftConfig.name, newDep);
           addEvent('Agent Ready', `Voice agent active: ${createData.agentId}`);
         } else {
           throw new Error(createData.error || 'Failed to prepare voice agent for testing.');
@@ -375,30 +370,34 @@ function TestConversationInner() {
       return;
     }
 
-    // Synchronize latest configuration with live ElevenLabs agent before connecting
+    // Synchronize latest configuration with live ElevenLabs agent before connecting ONLY if identities match
     if (draftConfig && agentIdToUse) {
-      try {
-        addEvent(
-          'Syncing Live Agent',
-          `Applying latest settings (${isHindiPrimary ? 'Hindi / Ritu Rathore' : 'English / Rachel'}) to ElevenLabs agent...`
-        );
-        const updateRes = await fetch('/api/agents/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agentId: agentIdToUse,
-            config: draftConfig,
-          }),
-        });
-        const updateData = await updateRes.json();
-        if (updateRes.ok) {
+      const isDentalAgent = isDentalDraft && agentIdToUse === handMadeAgentId;
+      const isDeployedMatch = deployedAgentId === agentIdToUse;
+      if (isDentalAgent || isDeployedMatch) {
+        try {
           addEvent(
-            'Agent Synchronized',
-            `Confirmed on ElevenLabs: voice "${updateData.voiceId}" (${updateData.primaryLanguage === 'hi' ? 'Hindi primary' : 'English primary'})`
+            'Syncing Live Agent',
+            `Applying latest settings (${isHindiPrimary ? 'Hindi / Ritu Rathore' : 'English / Rachel'}) to ElevenLabs agent...`
           );
+          const updateRes = await fetch('/api/agents/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agentId: agentIdToUse,
+              config: draftConfig,
+            }),
+          });
+          const updateData = await updateRes.json();
+          if (updateRes.ok) {
+            addEvent(
+              'Agent Synchronized',
+              `Confirmed on ElevenLabs: voice "${updateData.voiceId}" (${updateData.primaryLanguage === 'hi' ? 'Hindi primary' : 'English primary'})`
+            );
+          }
+        } catch (syncErr: any) {
+          console.warn('[Test] Auto-sync non-fatal warning:', syncErr);
         }
-      } catch (syncErr: any) {
-        console.warn('[Test] Auto-sync non-fatal warning:', syncErr);
       }
     }
 

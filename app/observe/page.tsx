@@ -12,6 +12,7 @@ import {
   CallAnalysisResult,
   FixHistoryItem,
 } from '@/lib/types';
+import { getDeploymentForConfig } from '@/lib/sync';
 
 const FIXES_STORAGE_KEY = 'voiceforge:fixes';
 const FIX_HISTORY_STORAGE_KEY = 'voiceforge:fix_history';
@@ -123,28 +124,17 @@ export default function ObservePage() {
       }
 
       try {
-        const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        if (storedDeployment) {
-          const parsed = JSON.parse(storedDeployment);
-          if (parsed.agentId) {
-            setDeployedAgentId(parsed.agentId);
-          }
+        const matched = getDeploymentForConfig(config);
+        if (matched && matched.agentId) {
+          setDeployedAgentId(matched.agentId);
         } else {
-          // Check if there is an active session / handmade agent
-          fetch('/api/voice/session')
-            .then((r) => r.json())
-            .then((d) => {
-              if (d?.handMadeAgentId) {
-                setDeployedAgentId(d.handMadeAgentId);
-              }
-            })
-            .catch(() => {});
+          setDeployedAgentId(null);
         }
       } catch {
         // Fallback
       }
     }
-  }, []);
+  }, [config]);
 
   const fetchConversations = async (sourceOverride?: 'real' | 'sample') => {
     setIsLoading(true);
