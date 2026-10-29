@@ -477,6 +477,7 @@ export interface MappedElevenLabsAgentPayload {
   primaryLanguage: string;
   languagePresets: Record<string, any>;
   chosenVoiceId: string;
+  chosenHindiVoiceId?: string;
 }
 
 /**
@@ -491,6 +492,8 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
   const systemPrompt = buildAgentSystemPrompt(config);
   const welcomeMessage = enforceAiDisclosure(config.welcomeMessage, config.name);
   const defaultVoiceId = process.env.ELEVENLABS_DEFAULT_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+  // Note: ElevenLabs requires English Agents (agent.language: 'en') to use 'eleven_flash_v2' or turbo for global TTS,
+  // while language_presets.hi overrides tts.model_id to 'eleven_flash_v2_5' and tts.voice_id to the Indian Hindi voice.
   const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || 'eleven_flash_v2';
 
   const hasHindi =
@@ -501,6 +504,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
 
   let welcomeMessageHindi = '';
   const languagePresets: Record<string, any> = {};
+  let chosenHindiVoiceId: string | undefined = undefined;
 
   if (hasHindi) {
     welcomeMessageHindi = enforceHindiAiDisclosure(
@@ -511,6 +515,13 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       config.name
     );
 
+    // Requirement 6: Dedicated Indian Hindi voice for language preset
+    chosenHindiVoiceId =
+      config.voiceIdHindi?.trim() ||
+      (config.voiceId && (config.voiceId === 'fTfuemKGBjYqG4ni4gw3' || config.voiceId === 'qdykssD3wAUvtIw9wG8N')
+        ? config.voiceId.trim()
+        : 'fTfuemKGBjYqG4ni4gw3'); // Ritu Rathore - Natural Conversational Hindi (verified reception voice)
+
     languagePresets['hi'] = {
       overrides: {
         agent: {
@@ -519,6 +530,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         },
         tts: {
           model_id: 'eleven_flash_v2_5',
+          voice_id: chosenHindiVoiceId,
         },
       },
     };
@@ -632,6 +644,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     primaryLanguage: 'en',
     languagePresets,
     chosenVoiceId,
+    chosenHindiVoiceId: hasHindi ? chosenHindiVoiceId : undefined,
   };
 }
 
@@ -1032,6 +1045,42 @@ export async function listVoices(): Promise<VoiceItem[]> {
         isSample: true,
       },
       {
+        voiceId: 'fTfuemKGBjYqG4ni4gw3',
+        name: 'Ritu Rathore (Natural Conversational Hindi)',
+        category: 'conversational',
+        description: 'Warm, clear, natural conversational Indian Hindi female voice suitable for medical and dental reception.',
+        labels: {
+          gender: 'female',
+          age: 'middle_aged',
+          accent: 'indian',
+          use_case: 'conversational',
+          description: 'calm',
+          language: 'hindi',
+          locale: 'hi-IN',
+        },
+        supportedLanguages: ['hi', 'hindi', 'en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/6a5ad105c93f46cfa7d9c324327d9ad0/voices/fTfuemKGBjYqG4ni4gw3/c2be593d-527a-4c18-af52-f9a01c901bd5.mp3',
+        isSample: true,
+      },
+      {
+        voiceId: 'qdykssD3wAUvtIw9wG8N',
+        name: 'Sandeep (Natural Indian Hindi)',
+        category: 'conversational',
+        description: 'Clear, natural and expressive Indian male voice with a warm tone, smooth delivery, and excellent clarity.',
+        labels: {
+          gender: 'male',
+          age: 'young',
+          accent: 'indian',
+          use_case: 'conversational',
+          description: 'calm',
+          language: 'hindi',
+          locale: 'hi-IN',
+        },
+        supportedLanguages: ['hi', 'hindi', 'en'],
+        previewUrl: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/09532de36fbb49a7931b7f07f50c162a/voices/qdykssD3wAUvtIw9wG8N/d4f226b7-80ba-4dfd-8200-a4c272ea2dd8.mp3',
+        isSample: true,
+      },
+      {
         voiceId: 'ThT5KcBeYPX3keUQqHPh',
         name: 'Aditi (Sample Voice)',
         category: 'multilingual',
@@ -1107,6 +1156,7 @@ export async function listVoices(): Promise<VoiceItem[]> {
   try {
     const res = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
+      cache: 'no-store',
       headers: {
         'xi-api-key': apiKey.trim(),
       },
@@ -1141,6 +1191,19 @@ export async function listVoices(): Promise<VoiceItem[]> {
       if (v.labels?.language && typeof v.labels.language === 'string') {
         langs.add(v.labels.language.toLowerCase());
       }
+      const locale = (v.labels?.locale || '').toLowerCase();
+      if (locale.includes('hi') || locale.includes('in')) {
+        langs.add('hi');
+        langs.add('hindi');
+      }
+
+      const rawAccent = (v.labels?.accent || '').toLowerCase();
+      const isIndian =
+        rawAccent.includes('indian') ||
+        locale.includes('in') ||
+        (v.name || '').toLowerCase().includes('indian') ||
+        (v.name || '').toLowerCase().includes('hindi');
+      const accent = isIndian ? 'indian' : (v.labels?.accent || '');
 
       const useCase =
         v.labels?.['use case'] ||
@@ -1155,12 +1218,13 @@ export async function listVoices(): Promise<VoiceItem[]> {
         category: v.category || 'premade',
         description: v.description || '',
         labels: {
-          accent: v.labels?.accent || '',
+          accent,
           age: v.labels?.age || '',
           gender: v.labels?.gender || '',
           use_case: useCase,
           description: v.labels?.description || '',
           language: v.labels?.language || '',
+          locale: v.labels?.locale || '',
         },
         supportedLanguages: Array.from(langs),
         previewUrl: v.preview_url || undefined,

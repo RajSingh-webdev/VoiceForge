@@ -1240,13 +1240,27 @@ export default function WritePage() {
                 <select
                   id="config-voice-select"
                   value={config.voiceName || 'Rachel (Default)'}
-                  onChange={(e) => updateConfigField('voiceName', e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const voiceMap: Record<string, string> = {
+                      'Rachel (Default)': '21m00Tcm4TlvDq8ikWAM',
+                      'Ritu Rathore — Natural Indian Hindi (Receptionist)': 'fTfuemKGBjYqG4ni4gw3',
+                      'Sandeep — Natural Indian Hindi': 'qdykssD3wAUvtIw9wG8N',
+                      'Sarah — Professional & Calm': 'EXAVITQu4vr4xnSDxMaL',
+                      'Drew — Conversational & Clear': '29vD33N1CtxCmqQRPOHJ',
+                    };
+                    updateConfigField('voiceName', val);
+                    if (voiceMap[val]) {
+                      updateConfigField('voiceId', voiceMap[val]);
+                    }
+                  }}
                   className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none mb-1.5"
                 >
                   <option value="Rachel (Default)">Rachel — Warm &amp; Friendly (Recommended)</option>
-                  <option value="Drew — Conversational &amp; Clear">Drew — Conversational &amp; Clear</option>
+                  <option value="Ritu Rathore — Natural Indian Hindi (Receptionist)">🇮🇳 Ritu Rathore — Natural Indian Hindi (Receptionist)</option>
+                  <option value="Sandeep — Natural Indian Hindi">🇮🇳 Sandeep — Natural Indian Hindi</option>
                   <option value="Sarah — Professional &amp; Calm">Sarah — Professional &amp; Calm</option>
-                  <option value="Paul — Grounded &amp; Authoritative">Paul — Grounded &amp; Authoritative</option>
+                  <option value="Drew — Conversational &amp; Clear">Drew — Conversational &amp; Clear</option>
                 </select>
                 <p className="text-[11px] text-gray-600">
                   <span className="font-semibold text-[#0F3D3E]">Recommended Style:</span> {config.voiceSuggestion || 'Warm, friendly, clear front-desk tone'}

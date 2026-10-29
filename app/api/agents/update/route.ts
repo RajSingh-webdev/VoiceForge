@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Prepare expected payload
     const mapped = mapConfigToElevenLabsPayload(config);
-    const { systemPrompt, welcomeMessage, welcomeMessageHindi, hasHindi, primaryLanguage, chosenVoiceId } = mapped;
+    const { systemPrompt, welcomeMessage, welcomeMessageHindi, hasHindi, primaryLanguage, chosenVoiceId, chosenHindiVoiceId } = mapped;
 
     // 3. Send update to ElevenLabs (or mock store)
     try {
@@ -148,6 +148,13 @@ export async function POST(req: NextRequest) {
         } else if (hindiPreset.overrides?.tts?.model_id && hindiPreset.overrides.tts.model_id !== 'eleven_flash_v2_5') {
           languagePresetsMatch = false;
           hindiPresetDiff = 'Hindi TTS model override differed from expected';
+        } else if (
+          chosenHindiVoiceId &&
+          hindiPreset.overrides?.tts?.voice_id &&
+          hindiPreset.overrides.tts.voice_id !== chosenHindiVoiceId
+        ) {
+          languagePresetsMatch = false;
+          hindiPresetDiff = `Hindi voice override differed from expected (expected "${chosenHindiVoiceId}", received "${hindiPreset.overrides.tts.voice_id}")`;
         }
       }
     }
@@ -190,6 +197,9 @@ export async function POST(req: NextRequest) {
       success: true,
       agentId: cleanAgentId,
       name: config.name,
+      verified: true,
+      voiceId: actualVoiceId,
+      voiceIdHindi: readBackAgent?.conversationConfig?.language_presets?.hi?.overrides?.tts?.voice_id || null,
       isSample: existingAgent.isSample === true,
       updatedAt: new Date().toISOString(),
     });

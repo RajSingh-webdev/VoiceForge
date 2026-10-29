@@ -57,6 +57,8 @@ export interface AgentConfig {
   voiceSuggestion: string;
   voiceId?: string;
   voiceName?: string;
+  voiceIdHindi?: string;
+  voiceNameHindi?: string;
   voiceSettings?: VoiceSettings;
   expressiveMode?: boolean;
   guardrails: string[];

@@ -24,6 +24,8 @@ export function computeConfigHash(config: AgentConfig | null | undefined): strin
     voiceSuggestion: config.voiceSuggestion || '',
     voiceId: config.voiceId || '',
     voiceName: config.voiceName || '',
+    voiceIdHindi: config.voiceIdHindi || '',
+    voiceNameHindi: config.voiceNameHindi || '',
     expressiveMode: !!config.expressiveMode,
     guardrails: Array.isArray(config.guardrails) ? [...config.guardrails] : [],
     knowledgeBaseDocuments: Array.isArray(config.knowledgeBaseDocuments)
