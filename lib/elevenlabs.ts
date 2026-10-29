@@ -163,7 +163,8 @@ export function buildAgentSystemPrompt(config: AgentConfig): string {
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
 - Transfer to a human staff member immediately if the caller asks to speak to a person, mentions pain, or reports an emergency (explain verbally that you are routing them to a human team member).
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
-- Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).`);
+- Reply in the caller's language (fluent English or Hindi / Hinglish based on the language they speak).
+- Concluding the Call & Hanging Up: When the caller says goodbye, indicates they are finished (e.g. "that's all", "no more questions", "thank you, bye", "धन्यवाद", "अलविदा"), or the conversation has reached a natural conclusion: warmly wish them well and immediately execute the end_call tool to hang up. Do not linger or repeatedly ask if they are still there once the conversation has concluded.`);
 
   return sections.join('\n\n');
 }
@@ -605,6 +606,12 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     agent: {
       prompt: {
         prompt: systemPrompt,
+        built_in_tools: {
+          end_call: {
+            name: 'end_call',
+            type: 'system',
+          },
+        },
       },
       first_message: activeFirstMessage,
       language: activeLanguage,
@@ -614,6 +621,10 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       voice_id: activeVoiceId,
     },
     asr: asrConfig,
+    turn: {
+      turn_timeout: 7,
+      silence_end_call_timeout: 15,
+    },
   };
 
   // Attach Knowledge Base documents if configured
