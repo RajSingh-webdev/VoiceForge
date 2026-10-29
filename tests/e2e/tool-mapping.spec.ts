@@ -133,13 +133,16 @@ test.describe('Write Page Tool Mapping & New Assistant Reset', () => {
     await testTransferBtn.click();
     await expect(page.locator('text=Call transferred to staff')).toBeVisible();
 
-    // Appointment Booking Webhook should appear with Test Booking button
+    // Appointment Booking Webhook should appear with direct webhook input (test/view buttons removed as requested)
     const bookingInput = page.locator('input[value="Appointment Booking Webhook"]');
     await expect(bookingInput).toBeVisible();
-    const testBookingBtn = page.locator('button:has-text("Test Booking")');
-    await expect(testBookingBtn).toBeVisible();
-    await testBookingBtn.click();
-    await expect(page.locator('text=Booking confirmed')).toBeVisible();
+
+    const webhookUrlInput = page.locator('#booking-webhook-url');
+    await expect(webhookUrlInput).toBeVisible();
+
+    // Verify test booking and view bookings buttons are removed
+    await expect(page.locator('button:has-text("Test Booking")')).toHaveCount(0);
+    await expect(page.locator('button:has-text("View Bookings")')).toHaveCount(0);
 
     // Test "Create New Assistant" button
     page.once('dialog', async (dialog) => {
