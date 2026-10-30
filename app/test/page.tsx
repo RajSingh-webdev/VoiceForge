@@ -227,6 +227,17 @@ function TestConversationInner() {
       const toolName = (props as any)?.tool_name || (props as any)?.name || 'Client Tool';
       addEvent('Client Tool', `Client tool triggered: ${toolName}`);
     },
+    clientTools: {
+      transfer_to_number: async (props: any) => {
+        addEvent('Live Call Transfer', 'Transferring ongoing call to human staff member...');
+        return 'Connecting you to our team right now, please stay on the line.';
+      },
+      language_detection: async (props: any) => {
+        const lang = props?.language || 'en';
+        addEvent('Voice Switched', `Language mirrored to: ${lang === 'hi' ? 'Hindi (Ritu Rathore)' : 'English (Rachel)'}`);
+        return `Language switched to ${lang}`;
+      },
+    },
   });
 
   const conversationRef = useRef(conversation);
@@ -278,7 +289,7 @@ function TestConversationInner() {
     draftConfig?.welcomeMessageHindi ||
     'नमस्ते! मैं एक AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?';
 
-  const handleSetLanguagePrimary = (lang: 'hi' | 'en') => {
+  const handleSetLanguagePrimary = async (lang: 'hi' | 'en') => {
     if (!draftConfig) return;
     let updated: AgentConfig;
     if (lang === 'hi') {
@@ -286,19 +297,35 @@ function TestConversationInner() {
         ...draftConfig,
         languages: ['Hindi', 'English'],
       };
-      addEvent('Language Mode', 'Set call opening language to Hindi');
+      addEvent('Language Mode', 'Opening in Hindi (Ritu Rathore) — auto-mirrors to English when caller speaks English');
     } else {
       updated = {
         ...draftConfig,
         languages: ['English', 'Hindi'],
       };
-      addEvent('Language Mode', 'Set call opening language to English');
+      addEvent('Language Mode', 'Opening in English (Rachel) — auto-mirrors to Hindi when caller speaks Hindi');
     }
     setDraftConfig(updated);
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(AGENT_STORAGE_KEY, JSON.stringify(updated));
       } catch {}
+    }
+
+    const targetAgentId = activeAgentId || deployedAgentId;
+    if (targetAgentId) {
+      try {
+        await fetch('/api/agents/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId: targetAgentId,
+            config: updated,
+          }),
+        });
+      } catch (err: any) {
+        console.warn('Background auto-sync on language change notice:', err);
+      }
     }
   };
 

@@ -90,6 +90,38 @@ export function enforceHindiAiDisclosure(message: string, agentName: string): st
 export function buildAgentSystemPrompt(config: AgentConfig): string {
   const sections: string[] = [];
 
+  const hasHindi =
+    Array.isArray(config.languages) &&
+    config.languages.some(
+      (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
+    );
+
+  const hasEnglish =
+    !Array.isArray(config.languages) ||
+    config.languages.length === 0 ||
+    config.languages.some(
+      (l) => (l || '').toLowerCase().includes('english') || (l || '').toLowerCase() === 'en'
+    );
+
+  // Highest priority directive for bidirectional bilingual code-switching
+  if (hasHindi && hasEnglish) {
+    sections.push(`### CRITICAL DIRECTIVE: Dynamic Language Mirroring & Tool Calling (Highest Priority)
+You are natively bilingual in English and Hindi.
+You MUST dynamically detect and mirror the caller's spoken language on EVERY SINGLE TURN:
+1. When the caller speaks in English (or asks any question in English, e.g. "Which type of course do you guys offer?"):
+   - You MUST immediately execute the language_detection tool with arguments: {"language": "en", "reason": "Caller is speaking English"}.
+   - You MUST formulate your entire spoken reply in fluent, natural English with an authentic English accent.
+   - It is STRICTLY FORBIDDEN to reply in Hindi when the caller spoke English.
+2. When the caller speaks in Hindi or Hinglish (e.g. "नमस्ते", "मुझे जानकारी चाहिए"):
+   - You MUST immediately execute the language_detection tool with arguments: {"language": "hi", "reason": "Caller is speaking Hindi"}.
+   - You MUST formulate your entire spoken reply in natural Hindi with an authentic Indian Hindi accent.
+   - It is STRICTLY FORBIDDEN to reply in English when the caller spoke Hindi.
+3. Mid-conversation language switching:
+   - If the caller switches from Hindi to English, switch to English on that exact turn!
+   - If the caller switches from English to Hindi, switch to Hindi on that exact turn!
+   - Never ignore the caller's language switch.`);
+  }
+
   // 1. Identity & Persona
   sections.push(
     `### Persona & Role\n${config.persona || `You are an AI assistant for ${config.name}.`}`
@@ -584,7 +616,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
             language: 'en',
           },
           tts: {
-            model_id: 'eleven_flash_v2',
+            model_id: 'eleven_flash_v2_5',
             voice_id: englishPresetVoiceId,
           },
         },
@@ -652,7 +684,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       name: 'language_detection',
       type: 'system',
       description:
-        'Automatically switch conversation language when caller speaks in English or Hindi / Hinglish. Call immediately with language "en" when caller speaks English, or "hi" when caller speaks Hindi.',
+        'Call this tool immediately when the caller speaks in English or Hindi / Hinglish. Pass arguments: {"language": "en" | "hi", "reason": "Caller spoke in English" | "Caller spoke in Hindi"}.',
       params: {
         system_tool_type: 'language_detection',
         only_at_conversation_start: false,
@@ -664,7 +696,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
     agent: {
       prompt: {
         prompt: systemPrompt,
-        llm: 'gemini-2.5-flash',
+        llm: 'gpt-4o-mini',
         temperature: 0,
         built_in_tools: builtInTools,
       },
