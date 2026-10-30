@@ -434,7 +434,14 @@ function TestConversationInner() {
     // 1. Microphone access check
     try {
       if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const testStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+        testStream.getTracks().forEach((track) => track.stop());
       } else {
         throw new Error('Microphone API is not supported in this browser environment.');
       }
