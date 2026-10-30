@@ -580,23 +580,10 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         : 'fTfuemKGBjYqG4ni4gw3'); // Ritu Rathore - Natural Conversational Hindi (verified reception voice)
   }
 
-  const domainKeywords: string[] = [];
-  if (config.name) domainKeywords.push(config.name);
-  if (hasHindi) domainKeywords.push('नमस्ते', 'हिंदी', 'सहायक', 'धन्यवाद');
-  if (hasEnglish) domainKeywords.push('English', 'Assistant', 'Help');
-  if (config.knowledge?.services && Array.isArray(config.knowledge.services)) {
-    config.knowledge.services.forEach((s) => {
-      if (typeof s === 'string' && s.trim()) {
-        domainKeywords.push(s.trim().slice(0, 30));
-      }
-    });
-  }
-
   const asrConfig = {
     provider: 'scribe_realtime',
     quality: 'high',
     user_input_audio_format: 'pcm_16000',
-    keywords: Array.from(new Set(domainKeywords)).slice(0, 20),
   };
 
   const englishPresetVoiceId =

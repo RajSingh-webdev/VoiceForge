@@ -33,7 +33,6 @@ function TestConversationInner() {
   const [latencies, setLatencies] = useState<number[]>([]);
   const [hasConnectedOnce, setHasConnectedOnce] = useState<boolean>(false);
   const [isStarting, setIsStarting] = useState<boolean>(false);
-  const [micVolume, setMicVolume] = useState<number>(0);
 
   // Which Agent selector state
   const [handMadeAgentId, setHandMadeAgentId] = useState<string>('');
@@ -267,24 +266,6 @@ function TestConversationInner() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Real-time microphone input volume tracking for live audio capture feedback
-  useEffect(() => {
-    if (conversation.status !== 'connected') {
-      setMicVolume(0);
-      return;
-    }
-    let animId: number;
-    const pollVolume = () => {
-      try {
-        const vol = conversation.getInputVolume();
-        setMicVolume(Math.min(100, Math.round(vol * 100)));
-      } catch {}
-      animId = requestAnimationFrame(pollVolume);
-    };
-    animId = requestAnimationFrame(pollVolume);
-    return () => cancelAnimationFrame(animId);
-  }, [conversation.status, conversation]);
-
   // Resolve active agent ID
   const isDentalDraft = draftConfig?.name ? isMatchingAgentName(draftConfig.name, 'Smile Dental') : false;
   const isSparkDraft = draftConfig?.name ? isMatchingAgentName(draftConfig.name, 'Spark Digital') : false;
@@ -453,15 +434,7 @@ function TestConversationInner() {
     // 1. Microphone access check
     try {
       if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-        const testStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-        // Immediately stop all tracks to release hardware lock before ElevenLabs connects
-        testStream.getTracks().forEach((track) => track.stop());
+        await navigator.mediaDevices.getUserMedia({ audio: true });
       } else {
         throw new Error('Microphone API is not supported in this browser environment.');
       }
@@ -737,30 +710,6 @@ function TestConversationInner() {
               </span>
             </div>
           </button>
-
-          {/* Live Mic Activity & Input Volume Meter */}
-          {isConnected && (
-            <div className="mt-4 flex flex-col items-center space-y-1.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 w-full max-w-sm">
-              <div className="flex items-center justify-between w-full text-xs">
-                <span className="flex items-center space-x-1.5 font-semibold text-emerald-950">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Microphone Live</span>
-                </span>
-                <span className="text-[11px] font-medium text-emerald-800">
-                  {micVolume > 5 ? '🎙️ Receiving voice' : '👂 Listening for speech...'}
-                </span>
-              </div>
-              <div className="w-full bg-emerald-200/60 h-2.5 rounded-full overflow-hidden p-0.5">
-                <div
-                  className="bg-emerald-600 h-full rounded-full transition-all duration-75 ease-out"
-                  style={{ width: `${Math.min(100, Math.max(5, micVolume * 2))}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-emerald-700/80 text-center">
-                Speak clearly into your microphone. Noise cancellation and echo suppression active.
-              </p>
-            </div>
-          )}
 
           {/* If ELEVENLABS_REAL_VOICE is not "true" */}
           {isRealVoiceConfigured === false && (
