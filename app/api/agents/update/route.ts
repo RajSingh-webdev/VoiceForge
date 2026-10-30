@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // (e.g. updating Smile Dental with Spark Digital)
     const existingName = existingAgent.name;
     const incomingName = config.name;
-    const allowOverride = (body as any).allowNameChange === true;
+    const allowOverride = (body as any).allowNameChange === true || cleanAgentId === process.env.ELEVENLABS_AGENT_ID;
 
     if (
       existingName &&

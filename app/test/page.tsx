@@ -458,6 +458,7 @@ function TestConversationInner() {
             body: JSON.stringify({
               agentId: agentIdToUse,
               config: draftConfig,
+              allowNameChange: true,
             }),
           });
           const updateData = await updateRes.json();

@@ -193,9 +193,10 @@ You MUST dynamically detect and mirror the caller's spoken language on EVERY SIN
 - Use ONLY the verified business facts given above.
 - NEVER invent prices, hours, services, or clinic policies.
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
-- Escalation & Human Hand-off: If the caller asks to speak to a person, human staff, manager, or reports an emergency:
-  * Immediately execute the transfer_to_number tool to connect the caller directly to human staff (${config.transferPhoneNumber || config.knowledge?.contact || '+91 98765 43210'}).
-  * Do NOT just recite or read out the phone number over TTS. You MUST call the transfer_to_number tool to initiate the live call transfer.
+- Escalation & Human Hand-off: If the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency:
+  * You HAVE the client tool "transfer_to_number" enabled.
+  * You MUST IMMEDIATELY call the "transfer_to_number" tool to route the call to human staff (${config.transferPhoneNumber || config.knowledge?.contact || '+91 6201228417'}).
+  * NEVER say you cannot connect calls or that your system has limitations preventing live call transfers. Your client application handles the direct phone dialer for the caller. Always execute transfer_to_number!
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
 - Bilingual Language & Accent Alignment: You are natively bilingual in English and Hindi.
   * You have the language_detection system tool enabled.
@@ -765,29 +766,46 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       headers['x-webhook-secret'] = webhookSecret;
     }
 
+    // Add booking webhook tool
+    const bookingTool = {
+      type: 'webhook',
+      name: 'book_appointment',
+      description:
+        'Record and confirm an appointment, reservation, or booking. Call this tool when the customer provides their full name, phone number, preferred date, and time.',
+      api_schema: {
+        url: `${appBaseUrl}/api/webhooks/booking`,
+        method: 'POST',
+        request_body_schema: {
+          type: 'object',
+          properties: {
+            callerName: { type: 'string', description: 'Full name of the caller or customer' },
+            callerPhone: { type: 'string', description: 'Contact phone number' },
+            appointmentDate: { type: 'string', description: 'Requested booking date (YYYY-MM-DD)' },
+            appointmentTime: { type: 'string', description: 'Requested booking time slot' },
+            service: { type: 'string', description: 'Requested service, reservation type, or topic' },
+            notes: { type: 'string', description: 'Any additional notes or customer preferences' },
+          },
+          required: ['callerName', 'callerPhone', 'appointmentDate', 'appointmentTime'],
+        },
+        request_headers: headers,
+      },
+    };
     conversationConfig.agent.prompt.tools = [
       {
-        type: 'webhook',
-        name: 'book_appointment',
-        description:
-          'Record and confirm an appointment, reservation, or booking. Call this tool when the customer provides their full name, phone number, preferred date, and time.',
-        api_schema: {
-          url: `${appBaseUrl}/api/webhooks/booking`,
-          method: 'POST',
-          request_body_schema: {
-            type: 'object',
-            properties: {
-              callerName: { type: 'string', description: 'Full name of the caller or customer' },
-              callerPhone: { type: 'string', description: 'Contact phone number' },
-              appointmentDate: { type: 'string', description: 'Requested booking date (YYYY-MM-DD)' },
-              appointmentTime: { type: 'string', description: 'Requested booking time slot' },
-              service: { type: 'string', description: 'Requested service, reservation type, or topic' },
-              notes: { type: 'string', description: 'Any additional notes or customer preferences' },
-            },
-            required: ['callerName', 'callerPhone', 'appointmentDate', 'appointmentTime'],
-          },
-          request_headers: headers,
-        },
+        type: 'client',
+        name: 'transfer_to_number',
+        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It connects the live call to human staff (${validTransferPhone || '+91 6201228417'}).`,
+        expects_response: true,
+      },
+      bookingTool,
+    ];
+  } else {
+    conversationConfig.agent.prompt.tools = [
+      {
+        type: 'client',
+        name: 'transfer_to_number',
+        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It connects the live call to human staff (${validTransferPhone || '+91 6201228417'}).`,
+        expects_response: true,
       },
     ];
   }
