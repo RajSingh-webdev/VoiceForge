@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useConversation } from '@elevenlabs/react';
 import { AgentConfig, AgentDeployment } from '@/lib/types';
 import SampleDataBadge from '@/components/SampleDataBadge';
@@ -485,34 +484,6 @@ export default function HumanizedAssistantView({
               </div>
             ))}
           </div>
-        </div>
-
-        {/* 6. BUSINESS HOURS & HUMAN ESCALATION */}
-        <div className="p-5 rounded-2xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0F3D3E] flex items-center space-x-1.5">
-              <span>🕒</span>
-              <span>{lang === 'hi' ? 'समय एवं मानव सहायता' : 'Hours & Human Escalation'}</span>
-            </h4>
-            <p className="text-xs text-[#354E41]">
-              <strong>{lang === 'hi' ? 'कार्य समय:' : 'Operating Hours:'}</strong>{' '}
-              {config.knowledge?.opening_hours || 'Monday to Saturday, 9:00 AM – 6:00 PM'}
-            </p>
-            <p className="text-xs text-[#4A5D52]">
-              {lang === 'hi'
-                ? 'मानव अधिकारी से बात करने के लिए कॉल के दौरान बस कहें: "मुझे प्रतिनिधि से बात करनी है"'
-                : 'Need to speak to a person? Simply say "Connect me to a human representative" during the call.'}
-            </p>
-          </div>
-
-          {!isEmbed && (
-            <Link
-              href="/deploy"
-              className="text-xs font-bold text-[#0F3D3E] hover:text-[#1F8A84] underline whitespace-nowrap self-start sm:self-center"
-            >
-              &larr; {lang === 'hi' ? 'वापस जाएँ' : 'Back to Builder'}
-            </Link>
-          )}
         </div>
 
         {/* 7. CLEAN PUBLIC FOOTER */}
