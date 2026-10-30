@@ -5,182 +5,52 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import SampleDataBadge from '@/components/SampleDataBadge';
+import KrishiAssistantView from '@/components/krishi/KrishiAssistantView';
+import HumanizedAssistantView from '@/components/HumanizedAssistantView';
 import { AgentConfig, AgentDeployment, isValidAgentConfig } from '@/lib/types';
 import { getDeploymentsMap, isMatchingAgentName } from '@/lib/sync';
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
 const AGENT_STORAGE_KEY = 'voiceforge:agent';
 
-function PublicCallWidget({
-  agentId,
-  agentName,
-  isSample,
-}: {
-  agentId: string;
-  agentName: string;
-  isSample: boolean;
-}) {
-  const [callActive, setCallActive] = useState<boolean>(false);
-  const [isStarting, setIsStarting] = useState<boolean>(false);
-  const [callError, setCallError] = useState<string | null>(null);
-  const [callDuration, setCallDuration] = useState<number>(0);
-  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const conversation = useConversation({
-    onConnect: () => {
-      setCallActive(true);
-      setIsStarting(false);
-      setCallError(null);
-      setCallDuration(0);
-      durationTimerRef.current = setInterval(() => {
-        setCallDuration((d) => d + 1);
-      }, 1000);
+const KRISHI_DEFAULT_CONFIG: AgentConfig = {
+  name: 'Krishi Seva Kendra',
+  persona: 'आप कृषि सेवा केंद्र के समर्पित, विनम्र और धैर्यवान सहायक हैं। आप किसानों को सरल, स्पष्ट और व्यावहारिक हिंदी में सलाह देते हैं।',
+  goals: [
+    'किसानों को मिट्टी की जाँच, मौसम और सरकारी योजनाओं की सही जानकारी देना',
+    'कॉल करने वाले किसानों की समस्याओं को धैर्य से सुनना और समाधान सुझाना',
+    'ज़रूरत पड़ने पर कॉल को तुरंत मानव कृषि अधिकारी को स्थानांतरित करना',
+  ],
+  flowSteps: [
+    { title: 'स्वागत', instruction: 'नमस्ते! मैं कृषि सेवा केंद्र का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?' },
+    { title: 'समस्या की पहचान', instruction: 'किसान से उनकी फसल, ज़मीन या समस्या के बारे में विस्तार से पूछें।' },
+    { title: 'मार्गदर्शन या समाधान', instruction: 'सटीक और सत्यापित कृषि सलाह दें।' },
+    { title: 'समापन या अधिकारी ट्रांसफर', instruction: 'संतुष्टि पूछें और ज़रूरत होने पर कृषि अधिकारी से कनेक्ट करें।' },
+  ],
+  welcomeMessage: 'Namaste! Welcome to Krishi Seva Kendra. How can I help you with your farming or crops today?',
+  welcomeMessageHindi: 'नमस्ते! मैं कृषि सेवा केंद्र का AI सहायक हूँ। खेती, मौसम या मिट्टी की जाँच से जुड़ी क्या जानकारी चाहिए?',
+  languages: ['Hindi', 'English'],
+  voiceSuggestion: 'Ritu Rathore — Natural Indian Hindi',
+  voiceId: 'fTfuemKGBjYqG4ni4gw3',
+  guardrails: [
+    'यह हमेशा स्पष्ट करें कि आप एक AI सहायक हैं।',
+    'कभी भी बिना सत्यापन वाली सरकारी योजनाओं या कीटनाशकों की गलत जानकारी न दें।',
+    'गंभीर या आपातकालीन कृषि समस्याओं के लिए किसान को कृषि अधिकारी से संपर्क करने को कहें।',
+  ],
+  tools: [
+    {
+      name: 'मिट्टी जाँच अपॉइंटमेंट',
+      purpose: 'Record and confirm soil testing requests for local agricultural laboratories.',
+      status: 'Ready',
     },
-    onDisconnect: () => {
-      setCallActive(false);
-      setIsStarting(false);
-      if (durationTimerRef.current) {
-        clearInterval(durationTimerRef.current);
-        durationTimerRef.current = null;
-      }
+    {
+      name: 'कृषि अधिकारी संपर्क',
+      purpose: 'Connect caller to human agricultural extension officer.',
+      status: 'Ready',
     },
-    onError: (err: any) => {
-      setIsStarting(false);
-      setCallError(typeof err === 'string' ? err : err?.message || 'Voice connection error');
-    },
-  });
+  ],
+};
 
-  const handleStartCall = async () => {
-    setIsStarting(true);
-    setCallError(null);
-
-    try {
-      // Obtain signed websocket URL from server
-      const res = await fetch(`/api/voice/session?agent_id=${encodeURIComponent(agentId)}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to start voice call session.');
-      }
-
-      if (data.signedUrl) {
-        await conversation.startSession({ signedUrl: data.signedUrl });
-      } else {
-        // Fallback or mock session simulation
-        setCallActive(true);
-        setIsStarting(false);
-        setCallDuration(0);
-        durationTimerRef.current = setInterval(() => {
-          setCallDuration((d) => d + 1);
-        }, 1000);
-      }
-    } catch (err: any) {
-      setIsStarting(false);
-      setCallError(err.message || 'Unable to connect call.');
-    }
-  };
-
-  const handleEndCall = async () => {
-    try {
-      await conversation.endSession();
-    } catch {
-      // Fallback
-    } finally {
-      setCallActive(false);
-      setIsStarting(false);
-      if (durationTimerRef.current) {
-        clearInterval(durationTimerRef.current);
-        durationTimerRef.current = null;
-      }
-    }
-  };
-
-  const formatTimer = (sec: number) => {
-    const mins = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="pt-2 text-center space-y-3">
-      {callError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
-          {callError}
-        </div>
-      )}
-
-      {callActive ? (
-        <div className="p-4 bg-emerald-50 border-2 border-emerald-400 rounded-2xl space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold text-emerald-900">
-            <span className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>Call in progress</span>
-            </span>
-            <span>{formatTimer(callDuration)}</span>
-          </div>
-
-          <div className="flex items-center justify-center space-x-2 py-2">
-            <div
-              className={`w-3 h-8 rounded-full ${
-                conversation.isSpeaking ? 'bg-[#1F8A84] animate-bounce' : 'bg-gray-300'
-              }`}
-            ></div>
-            <div
-              className={`w-3 h-12 rounded-full ${
-                conversation.isSpeaking ? 'bg-[#1F8A84] animate-pulse' : 'bg-gray-300'
-              }`}
-            ></div>
-            <div
-              className={`w-3 h-6 rounded-full ${
-                conversation.isSpeaking ? 'bg-[#1F8A84] animate-bounce' : 'bg-gray-300'
-              }`}
-            ></div>
-          </div>
-          <p className="text-xs text-[#0F3D3E] font-medium">
-            {conversation.isSpeaking ? `${agentName} is speaking...` : 'Listening to you...'}
-          </p>
-
-          <button
-            type="button"
-            onClick={handleEndCall}
-            className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors flex items-center justify-center space-x-2"
-          >
-            <span>📞</span>
-            <span>End Call</span>
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handleStartCall}
-          disabled={isStarting}
-          className="w-full py-3.5 px-6 rounded-2xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white font-bold text-sm sm:text-base transition-colors flex items-center justify-center space-x-2 shadow-md disabled:opacity-50"
-        >
-          {isStarting ? (
-            <>
-              <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              <span>Connecting voice line...</span>
-            </>
-          ) : (
-            <>
-              <span>🎙️</span>
-              <span>Talk to {agentName}</span>
-            </>
-          )}
-        </button>
-      )}
-
-      {isSample && (
-        <p className="text-[11px] text-gray-500">
-          Sample agent preview mode. Microphones and browser audio supported.
-        </p>
-      )}
-    </div>
-  );
-}
 
 export default function PublicAgentPage() {
   const params = useParams();
@@ -213,19 +83,38 @@ export default function PublicAgentPage() {
         const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
         const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
 
-        if (storedDeployment && storedAgent) {
-          const parsedDeployment: AgentDeployment = JSON.parse(storedDeployment);
+        if (storedAgent) {
           const parsedAgent = JSON.parse(storedAgent);
+          if (isValidAgentConfig(parsedAgent)) {
+            let parsedDeployment: AgentDeployment | null = null;
+            if (storedDeployment) {
+              try {
+                parsedDeployment = JSON.parse(storedDeployment);
+              } catch {}
+            }
 
-          if (
-            parsedDeployment.agentId === agentId &&
-            isValidAgentConfig(parsedAgent) &&
-            isMatchingAgentName(parsedDeployment.name, parsedAgent.name)
-          ) {
-            setDeployment(parsedDeployment);
-            setConfig(parsedAgent);
-            setIsLoading(false);
-            return;
+            // Match if agentId matches deployment or config, or URL is generic/active
+            const isMatch =
+              (parsedDeployment && parsedDeployment.agentId === agentId) ||
+              (parsedAgent.agentId && parsedAgent.agentId === agentId) ||
+              agentId === 'latest' ||
+              agentId === 'current' ||
+              agentId === 'preview' ||
+              (parsedDeployment && isMatchingAgentName(parsedDeployment.name, parsedAgent.name));
+
+            if (isMatch) {
+              setDeployment(
+                parsedDeployment || {
+                  agentId,
+                  name: parsedAgent.name,
+                  createdAt: new Date().toISOString(),
+                  isSample: false,
+                }
+              );
+              setConfig(parsedAgent);
+              setIsLoading(false);
+              return;
+            }
           }
         }
       } catch {
@@ -283,6 +172,43 @@ export default function PublicAgentPage() {
       } catch {
         // Fallback
       }
+
+      // 3. Fallback for Krishi Seva Kendra demo / direct routes
+      if (
+        agentId === 'krishi' ||
+        agentId === 'krishi-seva-kendra' ||
+        agentId === 'rural-helpline' ||
+        agentId.toLowerCase().includes('krishi')
+      ) {
+        setConfig(KRISHI_DEFAULT_CONFIG);
+        setDeployment({
+          agentId: agentId || 'krishi-seva-kendra',
+          name: 'Krishi Seva Kendra',
+          createdAt: new Date().toISOString(),
+          isSample: false,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // 4. Fallback to active localStorage draft agent if available
+      try {
+        const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
+        if (storedAgent) {
+          const parsed = JSON.parse(storedAgent);
+          if (isValidAgentConfig(parsed)) {
+            setConfig(parsed);
+            setDeployment({
+              agentId: agentId || 'assistant',
+              name: parsed.name,
+              createdAt: new Date().toISOString(),
+              isSample: false,
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {}
 
       // Not found
       setNotFound(true);
@@ -343,104 +269,39 @@ export default function PublicAgentPage() {
     );
   }
 
+  const isKrishi =
+    agentId === 'krishi' ||
+    agentId === 'krishi-seva-kendra' ||
+    agentId.toLowerCase().includes('krishi') ||
+    (config?.name && (
+      config.name.toLowerCase().includes('krishi') ||
+      config.name.toLowerCase().includes('agricultural') ||
+      config.name.toLowerCase().includes('kendra') ||
+      config.name.toLowerCase().includes('kisan') ||
+      config.name.toLowerCase().includes('rural')
+    ));
+
+  if (isKrishi) {
+    return (
+      <ConversationProvider>
+        <KrishiAssistantView
+          agentId={deployment?.agentId || agentId}
+          config={config}
+          deployment={deployment}
+          isEmbed={isEmbed}
+        />
+      </ConversationProvider>
+    );
+  }
+
   return (
     <ConversationProvider>
-      <div
-        className={`min-h-screen bg-[#F8FAF9] flex flex-col items-center justify-center ${
-          isEmbed ? 'p-2' : 'py-10 px-4'
-        }`}
-      >
-        {/* Container */}
-        <div className="w-full max-w-lg bg-white rounded-3xl border border-[#1F8A84]/25 shadow-lg overflow-hidden">
-          {/* Top Banner */}
-          <div className="bg-[#0F3D3E] text-white p-6 sm:p-8 text-center relative">
-            {deployment?.isSample && (
-              <div className="mb-3 flex justify-center">
-                <SampleDataBadge />
-              </div>
-            )}
-            <div className="w-20 h-20 rounded-full bg-[#1F8A84]/40 border-2 border-white/40 flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
-              🎙️
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {config.name}
-            </h1>
-            <p className="mt-2 text-xs sm:text-sm text-[#E8F1EF] max-w-sm mx-auto leading-relaxed">
-              {config.persona}
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-              {config.languages.map((lang) => (
-                <span
-                  key={lang}
-                  className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/15 text-white border border-white/20"
-                >
-                  🌐 {lang}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Body */}
-          <div className="p-6 sm:p-8 space-y-6">
-            {/* AI Disclosure Notice */}
-            <div className="p-3.5 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 text-center">
-              <p className="text-xs font-bold text-[#0F3D3E] flex items-center justify-center space-x-1.5">
-                <span>🤖</span>
-                <span>You are talking to an AI assistant.</span>
-              </p>
-            </div>
-
-            {/* Welcome Message Card */}
-            <div className="p-4 rounded-2xl bg-[#F8FAF9] border border-gray-200">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] block mb-1">
-                Opening Greeting
-              </span>
-              <p className="text-xs sm:text-sm text-gray-800 italic leading-relaxed">
-                &ldquo;{config.welcomeMessage}&rdquo;
-              </p>
-            </div>
-
-            {/* Goals / Capabilities */}
-            {config.goals && config.goals.length > 0 && (
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F3D3E] block mb-2">
-                  What this assistant can do
-                </span>
-                <ul className="space-y-1.5">
-                  {config.goals.map((goal, idx) => (
-                    <li
-                      key={idx}
-                      className="text-xs text-gray-700 flex items-start space-x-2"
-                    >
-                      <span className="text-[#1F8A84] font-bold">✓</span>
-                      <span>{goal}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Real Voice Call Action */}
-            <PublicCallWidget
-              agentId={deployment?.agentId || agentId}
-              agentName={config.name}
-              isSample={deployment?.isSample === true}
-            />
-
-            {/* Back to builder link (omitted in embed mode) */}
-            {!isEmbed && (
-              <div className="text-center pt-2 border-t border-gray-100">
-                <Link
-                  href="/deploy"
-                  className="text-xs font-bold text-[#1F8A84] hover:text-[#0F3D3E] underline"
-                >
-                  &larr; Back to VoiceForge Deployment
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <HumanizedAssistantView
+        agentId={deployment?.agentId || agentId}
+        config={config}
+        deployment={deployment}
+        isEmbed={isEmbed}
+      />
     </ConversationProvider>
   );
 }

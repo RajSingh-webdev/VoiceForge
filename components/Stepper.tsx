@@ -14,6 +14,10 @@ const steps = [
 export default function Stepper() {
   const pathname = usePathname();
 
+  if (pathname.startsWith('/agent') || pathname.startsWith('/krishi')) {
+    return null;
+  }
+
   return (
     <nav className="w-full bg-white border-b border-[#E8F1EF] py-4 px-6 shadow-sm">
       <div className="max-w-3xl mx-auto flex items-center justify-center space-x-2 sm:space-x-4">
