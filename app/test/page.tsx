@@ -40,6 +40,13 @@ function TestConversationInner() {
   const [selectedAgentSource, setSelectedAgentSource] = useState<'handmade' | 'deployed'>('deployed');
   const [draftConfig, setDraftConfig] = useState<AgentConfig | null>(null);
 
+  // Live Call Transfer state
+  const [activeTransfer, setActiveTransfer] = useState<{
+    destination: string;
+    reason: string;
+    timestamp: string;
+  } | null>(null);
+
   const callerFinishedTimeRef = useRef<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
@@ -230,8 +237,43 @@ function TestConversationInner() {
     },
     clientTools: {
       transfer_to_number: async (props: any) => {
-        addEvent('Live Call Transfer', 'Transferring ongoing call to human staff member...');
-        return 'Connecting you to our team right now, please stay on the line.';
+        const dest =
+          draftConfig?.transferPhoneNumber ||
+          draftConfig?.knowledge?.contact ||
+          '+91 6201228417';
+        const cleanPhone = dest.replace(/[^0-9+]/g, '');
+
+        addEvent('Live Call Transfer', `Connecting caller directly to human staff at ${dest}...`);
+        setActiveTransfer({
+          destination: dest,
+          reason: props?.reason || 'Caller requested human handoff',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+
+        // Notify escalation webhook
+        try {
+          fetch('/api/webhooks/escalate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callerName: 'Direct Call Transfer',
+              callerPhone: 'Live Voice Session',
+              transferPhone: dest,
+              targetPhone: dest,
+              reason: props?.reason || 'Caller requested a human staff member',
+              agentId: draftConfig?.agentId,
+            }),
+          }).catch(() => {});
+        } catch {}
+
+        // Trigger native dialer if supported
+        if (typeof window !== 'undefined') {
+          try {
+            window.location.href = `tel:${cleanPhone}`;
+          } catch {}
+        }
+
+        return `Connecting you directly to our human staff at ${dest} right now. Please stay on the line.`;
       },
       language_detection: async (props: any) => {
         const lang = props?.language || 'en';
@@ -558,6 +600,58 @@ function TestConversationInner() {
           <span>Use headphones to avoid acoustic echo</span>
         </span>
       </div>
+
+      {/* Live Direct Call Transfer Banner */}
+      {activeTransfer && (
+        <div className="bg-gradient-to-r from-emerald-600 via-[#1F8A84] to-[#0F3D3E] text-white p-5 rounded-2xl shadow-xl border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5 text-left">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner shrink-0 animate-bounce">
+                📞
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white text-emerald-800 shadow-xs">
+                    Directing Call to Staff
+                  </span>
+                  <span className="text-xs text-white/80">{activeTransfer.timestamp}</span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-white mt-0.5">
+                  {activeTransfer.destination}
+                </h3>
+                <p className="text-xs text-emerald-100/90">
+                  Live human escalation active. Assistant initiated direct call routing.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2.5 shrink-0 w-full sm:w-auto">
+              <a
+                href={`tel:${activeTransfer.destination.replace(/[^0-9+]/g, '')}`}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 font-extrabold text-xs shadow-md hover:bg-emerald-50 active:scale-95 transition-all"
+              >
+                <span>📞 Call Directly</span>
+              </a>
+              <a
+                href={`https://wa.me/${activeTransfer.destination.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello! I was just speaking with your AI VoiceForge assistant and requested to speak with you.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/30 hover:bg-emerald-500/40 text-white font-bold text-xs border border-white/20 active:scale-95 transition-all"
+              >
+                <span>💬 WhatsApp</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setActiveTransfer(null)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs transition-colors"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Voice Interaction Card */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-[#1F8A84]/30 shadow-sm text-center">

@@ -1691,10 +1691,10 @@ export default function WritePage() {
                         value={
                           config.transferPhoneNumber ??
                           config.knowledge?.contact ??
-                          '+91 98765 43210'
+                          '+91 6201228417'
                         }
                         onChange={(e) => updateConfigField('transferPhoneNumber', e.target.value)}
-                        placeholder="+91 98765 43210 or Front Desk Phone"
+                        placeholder="+91 6201228417 or Owner Mobile Number"
                         aria-label="Staff Phone Number to Call"
                         className="w-full p-2.5 rounded-xl border border-[#1F8A84]/30 font-mono text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-none"
                       />
