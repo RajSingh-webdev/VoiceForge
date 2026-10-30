@@ -1242,152 +1242,308 @@ export default function WritePage() {
             )}
 
             {/* 3. Languages & Voice Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
-              {/* Opening Language */}
-              <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider">
-                      Opening Language
-                    </span>
-                    <span className="text-[10px] text-[#1F8A84] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#1F8A84]/20">
-                      Mid-call auto-switch active
-                    </span>
-                  </div>
-                  {(() => {
-                    const isHindiOpening = Boolean(
-                      (config.languages?.[0] || '').toLowerCase().includes('hindi') ||
-                      (config.languages?.[0] || '').toLowerCase() === 'hi'
-                    );
+            {(() => {
+              const isHindiOpening = Boolean(
+                (config.languages?.[0] || '').toLowerCase().includes('hindi') ||
+                (config.languages?.[0] || '').toLowerCase() === 'hi'
+              );
 
-                    return (
-                      <>
-                        <div className="grid grid-cols-2 gap-2 mb-2">
+              // Determine active English voice option
+              const activeEnglishVoice =
+                WRITE_VOICE_OPTIONS.find((v) =>
+                  !v.isHindi && (
+                    v.id === config.voiceId ||
+                    (config.voiceName && config.voiceName.toLowerCase().includes(v.name.split(' ')[0].toLowerCase()))
+                  )
+                ) || WRITE_VOICE_OPTIONS[0]; // Rachel (Default)
+
+              // Determine active Hindi voice option
+              const activeHindiVoice =
+                WRITE_VOICE_OPTIONS.find((v) =>
+                  v.isHindi && (
+                    v.id === config.voiceIdHindi ||
+                    (config.voiceId && (config.voiceId === 'fTfuemKGBjYqG4ni4gw3' || config.voiceId === 'qdykssD3wAUvtIw9wG8N') && v.id === config.voiceId) ||
+                    (config.voiceNameHindi && config.voiceNameHindi.toLowerCase().includes(v.name.split(' ')[0].toLowerCase())) ||
+                    (config.voiceName && config.voiceName.toLowerCase().includes(v.name.split(' ')[0].toLowerCase()))
+                  )
+                ) || WRITE_VOICE_OPTIONS[1]; // Ritu Rathore
+
+              const activeOpeningVoice = isHindiOpening ? activeHindiVoice : activeEnglishVoice;
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+                  {/* Call Opening Mode */}
+                  <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#0F3D3E] uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>🌐</span>
+                          <span>Call Opening Mode</span>
+                        </span>
+                        <span className="text-[10px] text-[#1F8A84] font-semibold bg-white px-2 py-0.5 rounded-full border border-[#1F8A84]/20 shadow-xs">
+                          Mid-call auto-switch active
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <button
+                          type="button"
+                          id="write-opening-hindi-btn"
+                          onClick={() => {
+                            updateConfigFields({
+                              languages: ['Hindi', 'English'],
+                              voiceId: activeHindiVoice.id,
+                              voiceName: activeHindiVoice.name,
+                              voiceIdHindi: activeHindiVoice.id,
+                              voiceNameHindi: activeHindiVoice.name,
+                            });
+                          }}
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                            isHindiOpening
+                              ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                          }`}
+                        >
+                          <span>🇮🇳</span>
+                          <span>Hindi Primary</span>
+                        </button>
+                        <button
+                          type="button"
+                          id="write-opening-english-btn"
+                          onClick={() => {
+                            updateConfigFields({
+                              languages: ['English', 'Hindi'],
+                              voiceId: activeEnglishVoice.id,
+                              voiceName: activeEnglishVoice.name,
+                            });
+                          }}
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                            !isHindiOpening
+                              ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                          }`}
+                        >
+                          <span>🇬🇧</span>
+                          <span>English Primary</span>
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-white/90 rounded-lg border border-[#1F8A84]/20 text-[11px] leading-relaxed text-gray-700 mb-2">
+                        {isHindiOpening ? (
+                          <p>
+                            Calls greet in <span className="font-bold text-[#0F3D3E]">Hindi</span> first with <span className="font-bold text-[#0F3D3E]">🇮🇳 {activeHindiVoice.name}</span>. If caller speaks English, assistant automatically switches to <span className="font-bold text-[#0F3D3E]">🇬🇧 {activeEnglishVoice.name}</span>.
+                          </p>
+                        ) : (
+                          <p>
+                            Calls greet in <span className="font-bold text-[#0F3D3E]">English</span> first with <span className="font-bold text-[#0F3D3E]">🇬🇧 {activeEnglishVoice.name}</span>. If caller speaks Hindi, assistant automatically switches to <span className="font-bold text-[#0F3D3E]">🇮🇳 {activeHindiVoice.name}</span>.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Opening Voice Summary Pill */}
+                    <div className="pt-2.5 border-t border-[#1F8A84]/20 flex items-center justify-between text-[11px]">
+                      <span className="text-gray-500 font-semibold">Opening Speaker:</span>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0F3D3E] text-white font-bold text-[11px] shadow-xs">
+                        {isHindiOpening ? `🇮🇳 ${activeHindiVoice.name}` : `🇬🇧 ${activeEnglishVoice.name}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Voice Selection & Recommendation */}
+                  <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label
+                          htmlFor="config-voice-select"
+                          className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider"
+                        >
+                          Voice Recommendation &amp; Selection
+                        </label>
+                        <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Bilingual Active
+                        </span>
+                      </div>
+
+                      <select
+                        id="config-voice-select"
+                        value={
+                          config.voiceId ||
+                          activeOpeningVoice.id
+                        }
+                        onChange={(e) => {
+                          const chosenId = e.target.value;
+                          const chosen = WRITE_VOICE_OPTIONS.find((v) => v.id === chosenId) || WRITE_VOICE_OPTIONS[0];
+                          if (chosen.isHindi) {
+                            updateConfigFields({
+                              languages: ['Hindi', 'English'],
+                              voiceId: chosen.id,
+                              voiceName: chosen.name,
+                              voiceIdHindi: chosen.id,
+                              voiceNameHindi: chosen.name,
+                            });
+                          } else {
+                            updateConfigFields({
+                              languages: ['English', 'Hindi'],
+                              voiceId: chosen.id,
+                              voiceName: chosen.name,
+                            });
+                          }
+                        }}
+                        className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-hidden mb-1.5 shadow-2xs"
+                      >
+                        {WRITE_VOICE_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <p className="text-[11px] text-gray-600 mb-2">
+                        <span className="font-semibold text-[#0F3D3E]">Recommended Style:</span>{' '}
+                        {config.voiceSuggestion || 'Warm, friendly, clear front-desk tone'}
+                      </p>
+                    </div>
+
+                    {/* Bilingual Voice Pair Status & Quick Selectors */}
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-white/90 border border-[#1F8A84]/20 text-[11px] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 font-medium flex items-center space-x-1">
+                          <span>🇬🇧</span>
+                          <span>English Voice:</span>
+                        </span>
+                        <span className="font-bold text-[#0F3D3E] flex items-center space-x-1.5">
+                          <span>{activeEnglishVoice.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold uppercase ${
+                            !isHindiOpening ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {!isHindiOpening ? 'Opening' : 'Auto-switch'}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 font-medium flex items-center space-x-1">
+                          <span>🇮🇳</span>
+                          <span>Hindi Voice:</span>
+                        </span>
+                        <span className="font-bold text-[#0F3D3E] flex items-center space-x-1.5">
+                          <span>{activeHindiVoice.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold uppercase ${
+                            isHindiOpening ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {isHindiOpening ? 'Opening' : 'Auto-switch'}
+                          </span>
+                        </span>
+                      </div>
+
+                      {/* Quick Select Buttons */}
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-1 text-[10px]">
+                        <span className="text-gray-500 font-medium">Quick switch:</span>
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            id="write-opening-hindi-btn"
                             onClick={() => {
-                              updateConfigFields({
-                                languages: ['Hindi', 'English'],
-                              });
+                              if (isHindiOpening) {
+                                updateConfigFields({
+                                  voiceId: 'fTfuemKGBjYqG4ni4gw3',
+                                  voiceName: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+                                  voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
+                                  voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+                                });
+                              } else {
+                                updateConfigFields({
+                                  voiceIdHindi: 'fTfuemKGBjYqG4ni4gw3',
+                                  voiceNameHindi: 'Ritu Rathore — Natural Indian Hindi (Receptionist)',
+                                });
+                              }
                             }}
-                            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
-                              isHindiOpening
-                                ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
-                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                            className={`px-1.5 py-0.5 rounded border transition-colors ${
+                              activeHindiVoice.id === 'fTfuemKGBjYqG4ni4gw3'
+                                ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] font-bold'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                             }`}
                           >
-                            <span>🇮🇳</span>
-                            <span>Hindi Primary</span>
+                            🇮🇳 Ritu
                           </button>
                           <button
                             type="button"
-                            id="write-opening-english-btn"
                             onClick={() => {
-                              updateConfigFields({
-                                languages: ['English', 'Hindi'],
-                              });
+                              if (isHindiOpening) {
+                                updateConfigFields({
+                                  voiceId: 'qdykssD3wAUvtIw9wG8N',
+                                  voiceName: 'Sandeep - Natural Indian Hindi',
+                                  voiceIdHindi: 'qdykssD3wAUvtIw9wG8N',
+                                  voiceNameHindi: 'Sandeep - Natural Indian Hindi',
+                                });
+                              } else {
+                                updateConfigFields({
+                                  voiceIdHindi: 'qdykssD3wAUvtIw9wG8N',
+                                  voiceNameHindi: 'Sandeep - Natural Indian Hindi',
+                                });
+                              }
                             }}
-                            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
-                              !isHindiOpening
-                                ? 'bg-[#0F3D3E] text-white shadow-sm ring-2 ring-[#0F3D3E]/30'
-                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-[#E8F1EF]/40'
+                            className={`px-1.5 py-0.5 rounded border transition-colors ${
+                              activeHindiVoice.id === 'qdykssD3wAUvtIw9wG8N'
+                                ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] font-bold'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                             }`}
                           >
-                            <span>🇬🇧</span>
-                            <span>English Primary</span>
+                            🇮🇳 Sandeep
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isHindiOpening) {
+                                updateConfigFields({
+                                  voiceId: '21m00Tcm4TlvDq8ikWAM',
+                                  voiceName: 'Rachel (Default)',
+                                });
+                              } else {
+                                updateConfigFields({
+                                  voiceId: activeHindiVoice.id,
+                                  voiceName: activeHindiVoice.name,
+                                });
+                              }
+                            }}
+                            className={`px-1.5 py-0.5 rounded border transition-colors ${
+                              activeEnglishVoice.id === '21m00Tcm4TlvDq8ikWAM'
+                                ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] font-bold'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            🇬🇧 Rachel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isHindiOpening) {
+                                updateConfigFields({
+                                  voiceId: 'EXAVITQu4vr4xnSDxMaL',
+                                  voiceName: 'Sarah - Professional & Calm',
+                                });
+                              } else {
+                                updateConfigFields({
+                                  voiceId: activeHindiVoice.id,
+                                  voiceName: activeHindiVoice.name,
+                                });
+                              }
+                            }}
+                            className={`px-1.5 py-0.5 rounded border transition-colors ${
+                              activeEnglishVoice.id === 'EXAVITQu4vr4xnSDxMaL'
+                                ? 'bg-[#0F3D3E] text-white border-[#0F3D3E] font-bold'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            🇬🇧 Sarah
                           </button>
                         </div>
-                        <p className="text-[11px] text-[#1F8A84] leading-snug">
-                          {isHindiOpening
-                            ? 'Calls greet in Hindi first. If caller speaks English, assistant automatically switches to English.'
-                            : 'Calls greet in English first. If caller speaks Hindi, assistant automatically switches to Hindi.'}
-                        </p>
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Opening Voice Summary Badge */}
-                <div className="mt-3 pt-2.5 border-t border-[#1F8A84]/20 flex items-center justify-between text-[11px]">
-                  <span className="text-gray-500 font-medium">Opening Speaker:</span>
-                  <span className="font-bold text-[#0F3D3E]">
-                    {Boolean(config.languages?.[0]?.toLowerCase().includes('hindi'))
-                      ? (config.voiceNameHindi || 'Ritu Rathore (Hindi)')
-                      : (config.voiceName && !config.voiceName.toLowerCase().includes('hindi') && !config.voiceName.toLowerCase().includes('sandeep') && !config.voiceName.toLowerCase().includes('ritu')
-                          ? config.voiceName
-                          : 'Rachel (English)')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Voice Selection & Recommendation */}
-              <div className="p-4 rounded-xl bg-[#E8F1EF]/50 border border-[#1F8A84]/20 flex flex-col justify-between">
-                <div>
-                  <label
-                    htmlFor="config-voice-select"
-                    className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-1"
-                  >
-                    Voice Recommendation &amp; Selection
-                  </label>
-                  <select
-                    id="config-voice-select"
-                    value={
-                      config.voiceId ||
-                      WRITE_VOICE_OPTIONS.find((v) =>
-                        config.voiceName ? config.voiceName.toLowerCase().includes(v.name.split(' ')[0].toLowerCase()) : false
-                      )?.id ||
-                      '21m00Tcm4TlvDq8ikWAM'
-                    }
-                    onChange={(e) => {
-                      const chosenId = e.target.value;
-                      const chosen = WRITE_VOICE_OPTIONS.find((v) => v.id === chosenId) || WRITE_VOICE_OPTIONS[0];
-                      if (chosen.isHindi) {
-                        updateConfigFields({
-                          voiceId: chosen.id,
-                          voiceName: chosen.name,
-                          voiceIdHindi: chosen.id,
-                          voiceNameHindi: chosen.name,
-                        });
-                      } else {
-                        updateConfigFields({
-                          voiceId: chosen.id,
-                          voiceName: chosen.name,
-                        });
-                      }
-                    }}
-                    className="w-full p-2.5 rounded-lg border border-[#1F8A84]/30 text-xs font-bold text-[#0F3D3E] bg-white focus:ring-2 focus:ring-[#1F8A84] focus:outline-hidden mb-1.5"
-                  >
-                    {WRITE_VOICE_OPTIONS.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-gray-600 mb-2">
-                    <span className="font-semibold text-[#0F3D3E]">Recommended Style:</span> {config.voiceSuggestion || 'Warm, friendly, clear front-desk tone'}
-                  </p>
-                </div>
-
-                {/* Bilingual Voice Pair Status */}
-                <div className="mt-2.5 p-2 rounded-lg bg-white/80 border border-[#1F8A84]/20 text-[11px] space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium">🇬🇧 English Voice:</span>
-                    <span className="font-bold text-[#0F3D3E]">
-                      {config.voiceName && !config.voiceName.toLowerCase().includes('hindi') && !config.voiceName.toLowerCase().includes('sandeep') && !config.voiceName.toLowerCase().includes('ritu')
-                        ? config.voiceName
-                        : 'Rachel (Default)'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium">🇮🇳 Hindi Voice:</span>
-                    <span className="font-bold text-[#0F3D3E]">
-                      {config.voiceNameHindi || (config.voiceName && (config.voiceName.toLowerCase().includes('sandeep') || config.voiceName.toLowerCase().includes('ritu')) ? config.voiceName : 'Ritu Rathore — Natural Indian Hindi (Receptionist)')}
-                    </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* 4. Concise Conversation-Flow Preview */}
             <div className="pt-1">

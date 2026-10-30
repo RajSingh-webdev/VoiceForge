@@ -637,19 +637,43 @@ function TestConversationInner() {
           </div>
 
           <div className="p-3 bg-white rounded-xl border border-gray-200 text-xs">
-            <div className="flex items-center justify-between text-gray-500 text-[11px] mb-1">
-              <span className="font-semibold text-[#0F3D3E]">
-                Voice: {isHindiPrimary ? (draftConfig?.voiceNameHindi || 'Ritu Rathore (Natural Indian Hindi)') : (draftConfig?.voiceName || 'Rachel (Natural English)')}
-              </span>
-              <span className="text-emerald-700 font-medium">Bilingual English &amp; Hindi</span>
-            </div>
-            <p className="text-gray-700 italic leading-snug mb-2">
-              &ldquo;{isHindiPrimary ? activeGreetingHindi : activeGreetingEnglish}&rdquo;
-            </p>
-            <div className="text-[10px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-1.5">
-              <span>🔄 Auto mid-call voice switch:</span>
-              <span className="font-medium text-[#0F3D3E]">🇬🇧 Rachel ↔ 🇮🇳 Ritu Rathore</span>
-            </div>
+            {(() => {
+              const engVoiceLabel =
+                draftConfig?.voiceName &&
+                !draftConfig.voiceName.toLowerCase().includes('hindi') &&
+                !draftConfig.voiceName.toLowerCase().includes('sandeep') &&
+                !draftConfig.voiceName.toLowerCase().includes('ritu')
+                  ? draftConfig.voiceName
+                  : 'Rachel (Natural English)';
+
+              const hinVoiceLabel =
+                draftConfig?.voiceNameHindi ||
+                (draftConfig?.voiceName &&
+                (draftConfig.voiceName.toLowerCase().includes('sandeep') ||
+                  draftConfig.voiceName.toLowerCase().includes('ritu'))
+                  ? draftConfig.voiceName
+                  : 'Ritu Rathore (Natural Indian Hindi)');
+
+              return (
+                <>
+                  <div className="flex items-center justify-between text-gray-500 text-[11px] mb-1">
+                    <span className="font-semibold text-[#0F3D3E]">
+                      Voice: {isHindiPrimary ? hinVoiceLabel : engVoiceLabel}
+                    </span>
+                    <span className="text-emerald-700 font-medium">Bilingual English &amp; Hindi</span>
+                  </div>
+                  <p className="text-gray-700 italic leading-snug mb-2">
+                    &ldquo;{isHindiPrimary ? activeGreetingHindi : activeGreetingEnglish}&rdquo;
+                  </p>
+                  <div className="text-[10px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-1.5">
+                    <span>🔄 Auto mid-call voice switch:</span>
+                    <span className="font-medium text-[#0F3D3E]">
+                      🇬🇧 {engVoiceLabel.split(' ')[0]} ↔ 🇮🇳 {hinVoiceLabel.split(' ')[0]}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
