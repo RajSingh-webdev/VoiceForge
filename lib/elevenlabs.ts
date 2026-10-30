@@ -1408,7 +1408,8 @@ export async function listConversations(options?: {
   ensureServerSide();
   const isReal = isRealElevenLabsEnabled();
 
-  if (!isReal || options?.source === 'sample') {
+  // Only return sample data if explicitly requested (e.g. mock test suite)
+  if (options?.source === 'sample') {
     return {
       conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
       isSample: true,
@@ -1417,10 +1418,10 @@ export async function listConversations(options?: {
   }
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey || !apiKey.trim()) {
+  if (!isReal || !apiKey || !apiKey.trim() || !options?.agentId) {
     return {
-      conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
-      isSample: true,
+      conversations: [],
+      isSample: false,
       totalReal: 0,
     };
   }
@@ -1433,28 +1434,26 @@ export async function listConversations(options?: {
     url.searchParams.set('sort_direction', 'desc');
     url.searchParams.set('page_size', '50');
 
-    const res = await fetch(url.toString(), {
+    let res = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'xi-api-key': apiKey.trim(),
       },
     });
 
-    if (!res.ok) {
-      return {
-        conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
-        isSample: true,
-        totalReal: 0,
-      };
+    let rawList: any[] = [];
+
+    if (res.ok) {
+      const data = await res.json();
+      rawList = Array.isArray(data?.conversations) ? data.conversations : [];
     }
 
-    const data = await res.json();
-    const rawList = Array.isArray(data?.conversations) ? data.conversations : [];
+
 
     if (rawList.length === 0) {
       return {
-        conversations: SAMPLE_CONVERSATIONS.map((c) => ({ ...c, isSample: true })),
-        isSample: true,
+        conversations: [],
+        isSample: false,
         totalReal: 0,
       };
     }
