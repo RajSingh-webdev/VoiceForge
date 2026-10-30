@@ -77,7 +77,7 @@ export default function ObservePage() {
   const [selectedCall, setSelectedCall] = useState<Conversation | null>(null);
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSampleData, setIsSampleData] = useState<boolean>(true);
+  const [isSampleData, setIsSampleData] = useState<boolean>(false);
   const [totalRealCalls, setTotalRealCalls] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -159,6 +159,16 @@ export default function ObservePage() {
           return dep?.agentId || null;
         } catch { return null; }
       })();
+
+      // If no agent has been configured or deployed yet, show empty state (no sample data)
+      if (!agentIdToFilter && sourceOverride !== 'sample') {
+        setConversations([]);
+        setIsSampleData(false);
+        setTotalRealCalls(0);
+        setIsLoading(false);
+        return;
+      }
+
       if (agentIdToFilter && sourceOverride !== 'sample') {
         params.set('agent_id', agentIdToFilter);
       }
@@ -169,7 +179,7 @@ export default function ObservePage() {
         throw new Error(data.error || 'Failed to load call conversations.');
       }
       setConversations(data.conversations || []);
-      setIsSampleData(data.isSample !== false);
+      setIsSampleData(data.isSample === true);
       setTotalRealCalls(typeof data.totalReal === 'number' ? data.totalReal : 0);
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred while fetching calls.');
@@ -516,14 +526,7 @@ export default function ObservePage() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
                 Observe & Analytics
               </h1>
-              {isSampleData ? (
-                <SampleDataBadge />
-              ) : (
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Live ElevenLabs Calls</span>
-                </span>
-              )}
+              
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
               Review conversation outcomes, customer inquiries, AI performance, and apply one-click fixes.
@@ -543,23 +546,7 @@ export default function ObservePage() {
           </div>
         </div>
 
-        {/* Status Note */}
-        {isSampleData ? (
-          <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/30 flex items-start space-x-3">
-            <span className="text-[#1F8A84] text-base font-bold shrink-0">ℹ️</span>
-            <p className="text-xs sm:text-sm text-[#0F3D3E] font-medium leading-relaxed">
-              Sample data. Real calls will appear here once ElevenLabs is connected.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-300 flex items-start space-x-3">
-            <span className="text-emerald-700 text-base font-bold shrink-0">✓</span>
-            <p className="text-xs sm:text-sm text-emerald-900 font-medium leading-relaxed">
-              Showing live calls directly from your ElevenLabs workspace.
-            </p>
-          </div>
-        )}
-      </header>
+        </header>
 
       {/* Live sync / Fix confirmation banner */}
       {syncStatusMessage && (
@@ -787,11 +774,16 @@ export default function ObservePage() {
                     );
                   })}
 
-                  {filteredCalls.length === 0 && (
+                  {conversations.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-gray-500">
+                      <p className="font-semibold text-[#0F3D3E]">No calls yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Once callers interact with your assistant, their call logs will appear here.</p>
+                    </div>
+                  ) : filteredCalls.length === 0 ? (
                     <div className="text-center py-8 text-xs text-gray-500 italic">
                       No calls matching filter &ldquo;{filter}&rdquo;.
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -847,7 +839,7 @@ export default function ObservePage() {
                       <h3 className="text-lg font-bold text-[#0F3D3E]">
                         {selectedCall.callerName}
                       </h3>
-                      <SampleDataBadge />
+                      {selectedCall.isSample && <SampleDataBadge />}
                       {appliedFixes.includes(selectedCall.id) && (
                         <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                           ✓ Fix applied
