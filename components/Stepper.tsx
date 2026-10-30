@@ -15,30 +15,49 @@ export default function Stepper() {
   const pathname = usePathname();
 
   return (
-    <nav className="w-full bg-white border-b border-[#E8F1EF] py-4 px-6 shadow-sm">
-      <div className="max-w-3xl mx-auto flex items-center justify-center space-x-2 sm:space-x-4">
-        {steps.map((step, index) => {
-          const isActive = pathname === step.path;
-          return (
-            <div key={step.path} className="flex items-center">
-              <Link
-                href={step.path}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#0F3D3E] text-white'
-                    : 'text-[#1F8A84] hover:bg-[#E8F1EF] hover:text-[#0F3D3E]'
-                }`}
-              >
-                {step.name}
-              </Link>
-              {index < steps.length - 1 && (
-                <span className="ml-2 sm:ml-4 text-[#1F8A84] font-semibold select-none">
-                  &gt;
-                </span>
-              )}
-            </div>
-          );
-        })}
+    <nav className="w-full bg-white border-b border-[#E8F1EF] py-3.5 px-4 sm:px-8 shadow-xs sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
+        {/* Top Left: Project Name */}
+        <div className="w-full md:w-auto flex items-center justify-between md:justify-start">
+          <Link
+            href="/write"
+            className="flex items-center space-x-2.5 text-[#0F3D3E] hover:opacity-90 transition-opacity"
+            id="brand-logo"
+          >
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0F3D3E] to-[#1F8A84] flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
+              🎙️
+            </span>
+            <span className="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F3D3E]">
+              Voice<span className="text-[#1F8A84]">Forge</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Stepper Navigation Steps */}
+        <div className="flex items-center justify-center space-x-1.5 sm:space-x-3 overflow-x-auto max-w-full py-0.5">
+          {steps.map((step, index) => {
+            const isActive = pathname === step.path;
+            return (
+              <div key={step.path} className="flex items-center shrink-0">
+                <Link
+                  href={step.path}
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#0F3D3E] text-white shadow-xs'
+                      : 'text-[#1F8A84] hover:bg-[#E8F1EF] hover:text-[#0F3D3E]'
+                  }`}
+                >
+                  {step.name}
+                </Link>
+                {index < steps.length - 1 && (
+                  <span className="ml-1.5 sm:ml-3 text-[#1F8A84]/50 font-semibold select-none text-xs sm:text-sm">
+                    &gt;
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
