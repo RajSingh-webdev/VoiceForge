@@ -42,6 +42,7 @@ function TestConversationInner() {
 
   const callerFinishedTimeRef = useRef<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
 
   const addEvent = useCallback((title: string, detail: string) => {
     const time = new Date().toLocaleTimeString([], {
@@ -261,9 +262,12 @@ function TestConversationInner() {
     };
   }, []); // Empty dependency array ensures cleanup only runs on actual unmount
 
-  // Scroll transcript to bottom on new message
+  // Scroll internal transcript box only when new messages arrive during a conversation
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (transcript.length === 0) return;
+    if (transcriptContainerRef.current) {
+      transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
+    }
   }, [transcript]);
 
   // Resolve active agent ID
@@ -756,7 +760,7 @@ function TestConversationInner() {
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+        <div ref={transcriptContainerRef} className="flex-1 overflow-y-auto space-y-3 pr-2">
           {transcript.map((item) => {
             const isAgent = item.role === 'agent';
             return (
