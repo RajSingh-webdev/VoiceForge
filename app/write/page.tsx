@@ -578,7 +578,7 @@ export default function WritePage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto text-left py-6 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto text-left py-4 sm:py-6 px-3 sm:px-6">
       {/* Header section */}
       <header className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
@@ -611,7 +611,7 @@ export default function WritePage() {
       </header>
 
       {/* Website Input Section (Requirement 1) */}
-      <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm mb-8">
+      <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm mb-6 sm:mb-8">
         <h2 className="text-base font-bold text-[#0F3D3E] mb-1">
           Or paste your business website link
         </h2>
@@ -678,7 +678,7 @@ export default function WritePage() {
 
       {/* Extracted Facts Editable Panel (Requirements 5 & 6) */}
       {extractedFacts && (
-        <section className="bg-[#E8F1EF]/40 border-2 border-[#1F8A84] rounded-2xl p-6 sm:p-7 shadow-md mb-8">
+        <section className="bg-[#E8F1EF]/40 border-2 border-[#1F8A84] rounded-2xl p-4 sm:p-7 shadow-md mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-[#1F8A84]/20">
             <div>
               <div className="flex items-center space-x-2">
@@ -970,7 +970,7 @@ export default function WritePage() {
       </section>
 
       {/* Description Form */}
-      <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 sm:p-8 shadow-sm mb-10">
+      <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-8 shadow-sm mb-6 sm:mb-10">
         <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} noValidate>
           <div className="mb-4">
             <label
@@ -1116,7 +1116,7 @@ export default function WritePage() {
           </div>
 
           {/* Clean Setup Summary Card */}
-          <div className="bg-white border-2 border-[#1F8A84]/30 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 mb-8">
+          <div className="bg-white border-2 border-[#1F8A84]/30 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6 mb-6 sm:mb-8">
             {/* 1. Assistant Name & Core Capabilities */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -1461,7 +1461,7 @@ export default function WritePage() {
           {/* Collapsible Advanced Settings Section */}
           <details
             open
-            className="border border-[#1F8A84]/25 bg-[#F8FAF9] rounded-2xl p-6 transition-all group"
+            className="border border-[#1F8A84]/25 bg-[#F8FAF9] rounded-2xl p-4 sm:p-6 transition-all group"
           >
             <summary className="cursor-pointer text-sm font-bold text-[#0F3D3E] hover:text-[#1F8A84] flex items-center justify-between select-none">
               <span className="flex items-center space-x-2">
@@ -1478,7 +1478,7 @@ export default function WritePage() {
 
             <div className="mt-6 space-y-6 pt-4 border-t border-[#1F8A84]/15">
               {/* Personality & Tone */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
                   Personality &amp; Tone Instructions
                 </h3>
@@ -1492,7 +1492,7 @@ export default function WritePage() {
               </div>
 
               {/* Detailed Flow Step Editor */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
                     Detailed Conversation Flow Steps
@@ -1566,7 +1566,7 @@ export default function WritePage() {
               </div>
 
               {/* Behavioural Guardrails */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
                     Behavioural Guardrails
@@ -1628,7 +1628,7 @@ export default function WritePage() {
               </div>
 
               {/* Proposed Tools */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
@@ -1825,7 +1825,7 @@ export default function WritePage() {
 
               {/* Attached Website Knowledge */}
               {config.knowledge && (
-                <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+                <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">
                       Attached Website Knowledge
@@ -1859,7 +1859,7 @@ export default function WritePage() {
               )}
 
               {/* Knowledge Base Documents */}
-              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <div>
                     <h3 className="text-sm font-bold text-[#0F3D3E] uppercase tracking-wider">

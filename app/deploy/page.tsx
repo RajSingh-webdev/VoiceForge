@@ -115,7 +115,7 @@ export default function DeployPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto text-left py-6 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto text-left py-4 sm:py-6 px-3 sm:px-6">
       {/* Header */}
       <header className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -159,7 +159,7 @@ export default function DeployPage() {
       {isLoaded && config && (
         <>
           {/* Action to create or redeploy agent */}
-          <div className="mb-8 p-6 bg-white rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-white rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-bold text-[#0F3D3E]">
@@ -249,7 +249,7 @@ export default function DeployPage() {
                   Share Your Assistant
                 </h2>
 
-                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">

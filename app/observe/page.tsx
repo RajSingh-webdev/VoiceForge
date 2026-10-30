@@ -517,7 +517,7 @@ export default function ObservePage() {
       : conversations.filter((c) => c.outcome === filter);
 
   return (
-    <div className="w-full max-w-5xl mx-auto text-left py-6 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto text-left py-4 sm:py-6 px-3 sm:px-6">
       {/* Header */}
       <header className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -632,7 +632,7 @@ export default function ObservePage() {
       {!isLoading && !errorMessage && (
         <>
           {/* Metric Cards */}
-          <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8" aria-label="Call Metrics">
+          <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-6 sm:mb-8" aria-label="Call Metrics">
             <div className="bg-white p-4 rounded-xl border border-[#1F8A84]/25 shadow-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#1F8A84] block">
                 Total Calls
@@ -831,7 +831,7 @@ export default function ObservePage() {
 
             {/* Detail View Column */}
             {selectedCall && (
-              <div className="lg:col-span-7 bg-white border border-[#1F8A84]/25 rounded-2xl p-6 shadow-md sticky top-6">
+              <div className="lg:col-span-7 bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-6 shadow-md lg:sticky lg:top-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 pb-4 mb-4 border-b border-[#E8F1EF]">
                   <div>

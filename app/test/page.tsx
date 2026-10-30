@@ -655,7 +655,7 @@ function TestConversationInner() {
       )}
 
       {/* Main Voice Interaction Card */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-[#1F8A84]/30 shadow-sm text-center">
+      <div className="bg-white p-4 sm:p-8 rounded-2xl border-2 border-[#1F8A84]/30 shadow-sm text-center">
         {/* Status Line with Animated Voice State */}
         <div className="flex flex-col items-center justify-center space-y-2 mb-6">
           <div className="flex items-center space-x-2">
@@ -789,7 +789,7 @@ function TestConversationInner() {
             type="button"
             onClick={handleToggleConversation}
             disabled={isRealVoiceConfigured !== true || isConnecting}
-            className={`relative min-w-[220px] py-4 px-8 rounded-2xl flex items-center justify-center space-x-3 transition-all shadow-md ${
+            className={`relative w-full sm:w-auto min-w-[200px] sm:min-w-[240px] py-3.5 sm:py-4 px-5 sm:px-8 rounded-2xl flex items-center justify-center space-x-3 transition-all shadow-md ${
               isRealVoiceConfigured !== true
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
                 : isConnected
@@ -842,7 +842,7 @@ function TestConversationInner() {
 
       {/* Real-time Streaming Transcript */}
       <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm flex flex-col h-[460px]">
-        <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-gray-100">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F3D3E]">
               Conversation Transcript
@@ -863,8 +863,8 @@ function TestConversationInner() {
                 key={item.id}
                 className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${
                   isAgent
-                    ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-12 border border-[#1F8A84]/30'
-                    : 'bg-gray-100 text-gray-900 ml-12 border border-gray-200'
+                    ? 'bg-[#E8F1EF] text-[#0F3D3E] mr-4 sm:mr-12 border border-[#1F8A84]/30'
+                    : 'bg-gray-100 text-gray-900 ml-4 sm:ml-12 border border-gray-200'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -959,7 +959,7 @@ export default function TestPage() {
   }, []);
 
   return (
-    <div className="w-full max-w-4xl mx-auto text-left py-6 px-4 sm:px-6">
+    <div className="w-full max-w-4xl mx-auto text-left py-4 sm:py-6 px-3 sm:px-6">
       {/* Header */}
       <header className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

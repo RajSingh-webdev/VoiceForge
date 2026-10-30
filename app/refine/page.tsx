@@ -199,7 +199,7 @@ export default function RefinePage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto text-left py-6 px-4 sm:px-6">
+    <div className="w-full max-w-4xl mx-auto text-left py-4 sm:py-6 px-3 sm:px-6">
       {/* Header */}
       <header className="mb-6">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D3E] tracking-tight">
@@ -232,7 +232,7 @@ export default function RefinePage() {
       {!config ? null : (
         <>
           {/* 2. Chat-style Box for Change Request */}
-          <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 sm:p-7 shadow-sm mb-8">
+          <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-7 shadow-sm mb-6 sm:mb-8">
             <h2 className="text-base font-bold text-[#0F3D3E] mb-2">
               What would you like to change?
             </h2>
@@ -373,7 +373,7 @@ export default function RefinePage() {
           {proposedChanges && (
             <section
               id="proposed-change-panel"
-              className="bg-white border-2 border-[#1F8A84] rounded-2xl p-6 sm:p-7 shadow-lg mb-8"
+              className="bg-white border-2 border-[#1F8A84] rounded-2xl p-4 sm:p-7 shadow-lg mb-6 sm:mb-8"
               aria-labelledby="proposed-heading"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-[#E8F1EF]">
@@ -470,7 +470,7 @@ export default function RefinePage() {
           )}
 
           {/* 6. History List of Applied Changes */}
-          <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-6 sm:p-7 shadow-sm">
+          <section className="bg-white border border-[#1F8A84]/25 rounded-2xl p-4 sm:p-7 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-[#0F3D3E]">

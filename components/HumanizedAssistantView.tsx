@@ -243,7 +243,7 @@ export default function HumanizedAssistantView({
       ];
 
   return (
-    <div className={`min-h-screen bg-[#FAF9F6] text-[#25352C] ${isEmbed ? 'p-2 sm:p-4' : 'py-8 px-4 sm:px-6'}`}>
+    <div className={`min-h-screen bg-[#FAF9F6] text-[#25352C] ${isEmbed ? 'p-2 sm:p-4' : 'py-4 sm:py-8 px-3 sm:px-6'}`}>
       <div className="w-full max-w-2xl mx-auto space-y-6">
 
         {/* 1. COMPACT HUMANIZED HEADER */}
@@ -354,7 +354,7 @@ export default function HumanizedAssistantView({
         )}
 
         {/* 2. WELCOMING INTRODUCTION CARD */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#E2E8F0] shadow-xs text-center space-y-3">
+        <div className="bg-white rounded-3xl p-4 sm:p-7 border border-[#E2E8F0] shadow-xs text-center space-y-3">
           <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E8F1EF] text-[#0F3D3E] border border-[#1F8A84]/20">
             <span>👋</span>
             <span>{lang === 'hi' ? 'नमस्ते एवं स्वागत है' : 'Welcome to our voice desk'}</span>
@@ -384,7 +384,7 @@ export default function HumanizedAssistantView({
         </div>
 
         {/* 3. PRIMARY CALL INTERACTION CARD */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#1F8A84]/30 shadow-sm text-center space-y-6">
+        <div className="bg-white rounded-3xl p-4 sm:p-8 border-2 border-[#1F8A84]/30 shadow-sm text-center space-y-5 sm:space-y-6">
           <div className="flex items-center justify-between border-b border-[#F0F4F2] pb-4">
             <div className="text-left">
               <span className="text-xs font-bold uppercase tracking-wider text-[#1F8A84]">
