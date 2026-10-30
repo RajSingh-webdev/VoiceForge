@@ -23,10 +23,6 @@ export default function DeployPage() {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
 
-  // Booking Webhook state
-  const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
-  const [webhookTestResult, setWebhookTestResult] = useState<any>(null);
-  const [webhookError, setWebhookError] = useState<string | null>(null);
 
   // Read stored deployment for the active assistant configuration
   useEffect(() => {
@@ -110,38 +106,6 @@ export default function DeployPage() {
   };
 
   const shareUrl = deployment ? `${origin}/agent/${deployment.agentId}` : '';
-
-  const handleTestWebhook = async () => {
-    setIsTestingWebhook(true);
-    setWebhookError(null);
-    setWebhookTestResult(null);
-
-    try {
-      const res = await fetch('/api/webhooks/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          callerName: 'Sarah Jenkins (Test Caller)',
-          callerPhone: '+1-555-0143',
-          appointmentDate: '2026-11-05',
-          appointmentTime: '10:00 AM',
-          service: 'General Service Consultation',
-          notes: 'Test booking dispatched from VoiceForge Deploy console',
-          targetWebhookUrl: config?.bookingWebhookUrl || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to dispatch test booking webhook.');
-      }
-      setWebhookTestResult(data);
-    } catch (err: any) {
-      setWebhookError(err.message || 'Webhook test failed.');
-    } finally {
-      setIsTestingWebhook(false);
-    }
-  };
 
   const handleCopyLink = () => {
     if (!shareUrl) return;
@@ -285,27 +249,58 @@ export default function DeployPage() {
                   Share Your Assistant
                 </h2>
 
-                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                        🔗
+                <div className="bg-white p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0F3D3E] to-[#1F8A84] text-white flex items-center justify-center text-base font-extrabold shadow-2xs shrink-0 tracking-wider">
+                        {(config.name || 'VF')
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((w) => w[0]?.toUpperCase())
+                          .join('') || 'VF'}
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-[#0F3D3E]">
-                          Shareable Web Link
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          Share this link with your customers or clients for instant voice calls in their browser.
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-base font-bold text-[#0F3D3E]">
+                            {config.name}
+                          </h3>
+                          <span className="text-[10px] font-bold text-[#1F8A84] uppercase tracking-wider bg-[#E8F1EF] px-2 py-0.5 rounded-full border border-[#1F8A84]/20 shrink-0">
+                            Active Link
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Share this link with customers or clients for instant browser voice calls with {config.name}.
                         </p>
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold text-[#1F8A84] uppercase tracking-wider bg-[#E8F1EF] px-2.5 py-1 rounded-full border border-[#1F8A84]/20 shrink-0">
-                      Active Link
-                    </span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-gray-100">
+                  {/* Assistant Quick Specs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FAF9F6] border border-gray-200 text-xs text-gray-700">
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Languages</span>
+                      <span className="font-semibold text-[#0F3D3E]">{config.languages?.join(', ') || 'English'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Assigned Voice</span>
+                      <span className="font-semibold text-[#0F3D3E]">{config.voiceName || 'Rachel (Default)'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Target Service</span>
+                      <span className="font-semibold text-[#0F3D3E] truncate block">
+                        {config.goals?.[0] || 'Customer Inquiries & Support'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Link Preview Bar */}
+                  <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-mono text-xs text-gray-700">
+                    <span className="text-gray-400 select-none">🔗</span>
+                    <span className="truncate flex-1 select-all font-medium text-[#0F3D3E]">{shareUrl}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={handleCopyLink}
@@ -337,93 +332,7 @@ export default function DeployPage() {
                 <BulkCampaignPanel />
               </div>
 
-              {/* Optional Advanced Integration: Booking Webhook */}
-              <details className="bg-white p-5 rounded-2xl border border-[#1F8A84]/25 shadow-sm group">
-                <summary className="cursor-pointer select-none flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                      📅
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-[#0F3D3E]">
-                        Advanced Integration: Inbound Booking Webhook
-                      </h3>
-                      <p className="text-xs text-[#1F8A84]">
-                        Receive confirmed appointment bookings from your voice assistant into your calendar or CRM.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-[#1F8A84] font-semibold bg-[#E8F1EF] px-2.5 py-1 rounded-lg">
-                    Show / Hide Details
-                  </span>
-                </summary>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex justify-end mb-4">
-                    <button
-                      type="button"
-                      onClick={handleTestWebhook}
-                      disabled={isTestingWebhook}
-                      className="px-4 py-2 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shrink-0 disabled:opacity-50"
-                    >
-                      {isTestingWebhook ? (
-                        <>
-                          <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                          </svg>
-                          <span>Testing Webhook...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>⚡</span>
-                          <span>Send Test Booking</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider mb-1">
-                        Active Webhook Target URL
-                      </label>
-                      <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 font-mono text-xs text-[#0F3D3E] break-all select-all">
-                        {config.bookingWebhookUrl && config.bookingWebhookUrl.trim().startsWith('http')
-                          ? config.bookingWebhookUrl.trim()
-                          : `${origin}/api/webhooks/booking`}
-                      </div>
-                      {config.bookingWebhookUrl && (
-                        <p className="text-[11px] text-emerald-800 mt-1 font-semibold">
-                          ✓ Confirmed bookings forward directly to your Zapier / Google Calendar / CRM webhook.
-                        </p>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] text-gray-500">
-                      Authenticate requests by passing your secret in the <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800">x-webhook-secret</code> HTTP header.
-                    </p>
-
-                    {webhookError && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                        ⚠️ {webhookError}
-                      </div>
-                    )}
-
-                    {webhookTestResult && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
-                        <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-900">
-                          <span>✓</span>
-                          <span>Webhook Response: Appointment Confirmed</span>
-                        </div>
-                        <pre className="p-2 rounded bg-white text-[10px] text-emerald-900 font-mono overflow-x-auto border border-emerald-200">
-                          {JSON.stringify(webhookTestResult, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </details>
             </div>
           )}
         </>
