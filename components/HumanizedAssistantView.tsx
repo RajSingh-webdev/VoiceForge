@@ -233,7 +233,7 @@ export default function HumanizedAssistantView({
                     : 'text-[#667368] hover:text-[#0F3D3E]'
                 }`}
               >
-                हिंदी
+                Hindi
               </button>
               <button
                 type="button"
@@ -274,7 +274,7 @@ export default function HumanizedAssistantView({
               <span>
                 {lang === 'hi'
                   ? 'यह एक AI वॉइस सहायक है। आवश्यकता होने पर आप मानव प्रतिनिधि से बात कर सकते हैं।'
-                  : `You are speaking with ${config.name}'s AI assistant. You can request a human staff member anytime.`}
+                  : 'You are talking to an AI assistant.'}
               </span>
             </p>
           </div>
