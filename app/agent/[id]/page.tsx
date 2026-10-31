@@ -7,6 +7,7 @@ import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import SampleDataBadge from '@/components/SampleDataBadge';
 import KrishiAssistantView from '@/components/krishi/KrishiAssistantView';
 import HumanizedAssistantView from '@/components/HumanizedAssistantView';
+import EmbeddedWidgetView from '@/components/EmbeddedWidgetView';
 import { AgentConfig, AgentDeployment, isValidAgentConfig } from '@/lib/types';
 import { getDeploymentsMap, isMatchingAgentName } from '@/lib/sync';
 
@@ -280,6 +281,18 @@ export default function PublicAgentPage() {
       config.name.toLowerCase().includes('kisan') ||
       config.name.toLowerCase().includes('rural')
     ));
+
+  if (isEmbed) {
+    return (
+      <ConversationProvider>
+        <EmbeddedWidgetView
+          agentId={deployment?.agentId || agentId}
+          config={config}
+          deployment={deployment}
+        />
+      </ConversationProvider>
+    );
+  }
 
   if (isKrishi) {
     return (
