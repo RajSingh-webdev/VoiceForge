@@ -193,10 +193,10 @@ You MUST dynamically detect and mirror the caller's spoken language on EVERY SIN
 - Use ONLY the verified business facts given above.
 - NEVER invent prices, hours, services, or clinic policies.
 - If you do not know an answer or the information is not in the business facts, say so honestly and offer a callback from front desk staff.
-- Escalation & Human Hand-off: If the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency:
-  * You HAVE the client tool "transfer_to_number" enabled.
-  * You MUST IMMEDIATELY call the "transfer_to_number" tool to route the call to human staff (${config.transferPhoneNumber || config.knowledge?.contact || '+91 6201228417'}).
-  * NEVER say you cannot connect calls or that your system has limitations preventing live call transfers. Your client application handles the direct phone dialer for the caller. Always execute transfer_to_number!
+- Escalation & Human Hand-off: If the caller asks to speak to a person, senior, human staff, officer, manager, doctor, or reports an emergency:
+  * Immediately call the "transfer_to_number" tool.
+  * Inform the caller: "You can contact our team or senior staff at ${config.transferPhoneNumber || config.knowledge?.contact || '+91 6201228417'}. Automatic in-call transfer will be available in a future update."
+  * Always provide the contact number warmly and politely.
 - Appointment Booking: Collect the caller's full name, phone number, desired appointment date, and time. Never state an appointment is confirmed until the booking system tool confirms it. If the booking tool fails or is unavailable, take a message and inform the caller that clinic staff will call them back to confirm.
 - Bilingual Language & Accent Alignment: You are natively bilingual in English and Hindi.
   * You have the language_detection system tool enabled.
@@ -656,27 +656,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
         system_tool_type: 'end_call',
       },
     },
-    transfer_to_number: {
-      name: 'transfer_to_number',
-      type: 'system',
-      description:
-        'Transfer the ongoing call to a live human staff member when caller asks to speak to a person, human, doctor, manager, or reports an emergency.',
-      params: {
-        system_tool_type: 'transfer_to_number',
-        transfers: [
-          {
-            transfer_destination: {
-              type: 'phone',
-              phone_number: validTransferPhone || '+919876543210',
-            },
-            condition:
-              'Caller asks to speak with a person, human staff, doctor, manager, or reports an emergency.',
-            description: 'Transfer to front desk human staff',
-            client_message: 'Connecting you to our team right now, please stay on the line.',
-          },
-        ],
-      },
-    },
+
   };
 
   // Enable dynamic language detection so ElevenLabs automatically triggers presets on user language switches
@@ -794,7 +774,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       {
         type: 'client',
         name: 'transfer_to_number',
-        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It connects the live call to human staff (${validTransferPhone || '+91 6201228417'}).`,
+        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It provides the contact phone number and notes that automatic transfer will be available in a future update (${validTransferPhone || '+91 6201228417'}).`,
         expects_response: true,
       },
       bookingTool,
@@ -804,7 +784,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
       {
         type: 'client',
         name: 'transfer_to_number',
-        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It connects the live call to human staff (${validTransferPhone || '+91 6201228417'}).`,
+        description: `Call this tool immediately when the caller asks to speak to a person, human staff, officer, manager, doctor, or reports an emergency. It provides the contact phone number and notes that automatic transfer will be available in a future update (${validTransferPhone || '+91 6201228417'}).`,
         expects_response: true,
       },
     ];

@@ -241,39 +241,15 @@ function TestConversationInner() {
           draftConfig?.transferPhoneNumber ||
           draftConfig?.knowledge?.contact ||
           '+91 6201228417';
-        const cleanPhone = dest.replace(/[^0-9+]/g, '');
 
-        addEvent('Live Call Transfer', `Connecting caller directly to human staff at ${dest}...`);
+        addEvent('Human Escalation Info', `Informed caller to contact human staff at ${dest}. Direct phone calls will be available in a future update.`);
         setActiveTransfer({
           destination: dest,
           reason: props?.reason || 'Caller requested human handoff',
           timestamp: new Date().toLocaleTimeString(),
         });
 
-        // Notify escalation webhook
-        try {
-          fetch('/api/webhooks/escalate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              callerName: 'Direct Call Transfer',
-              callerPhone: 'Live Voice Session',
-              transferPhone: dest,
-              targetPhone: dest,
-              reason: props?.reason || 'Caller requested a human staff member',
-              agentId: draftConfig?.agentId,
-            }),
-          }).catch(() => {});
-        } catch {}
-
-        // Trigger native dialer if supported
-        if (typeof window !== 'undefined') {
-          try {
-            window.location.href = `tel:${cleanPhone}`;
-          } catch {}
-        }
-
-        return `Connecting you directly to our human staff at ${dest} right now. Please stay on the line.`;
+        return `You can reach our team or senior staff directly at ${dest}. Automatic in-call phone transfer will be available in a future update.`;
       },
       language_detection: async (props: any) => {
         const lang = props?.language || 'en';
@@ -602,54 +578,37 @@ function TestConversationInner() {
         </span>
       </div>
 
-      {/* Live Direct Call Transfer Banner */}
+      {/* Human Contact Info Banner */}
       {activeTransfer && (
-        <div className="bg-gradient-to-r from-emerald-600 via-[#1F8A84] to-[#0F3D3E] text-white p-5 rounded-2xl shadow-xl border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3.5 text-left">
-              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner shrink-0 animate-bounce">
-                📞
-              </div>
+        <div className="bg-[#E8F1EF] border border-[#1F8A84]/30 text-[#0F3D3E] p-4 sm:p-5 rounded-2xl shadow-xs animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 text-left">
+              <span className="w-10 h-10 rounded-xl bg-[#0F3D3E] text-white flex items-center justify-center text-lg shrink-0">
+                👤
+              </span>
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white text-emerald-800 shadow-xs">
-                    Directing Call to Staff
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#1F8A84]">
+                    Senior / Staff Contact Info
                   </span>
-                  <span className="text-xs text-white/80">{activeTransfer.timestamp}</span>
+                  <span className="text-[11px] text-gray-500">{activeTransfer.timestamp}</span>
                 </div>
-                <h3 className="text-lg font-black tracking-tight text-white mt-0.5">
-                  {activeTransfer.destination}
-                </h3>
-                <p className="text-xs text-emerald-100/90">
-                  Live human escalation active. Assistant initiated direct call routing.
+                <p className="text-sm font-extrabold text-[#0F3D3E] mt-0.5">
+                  You can contact at: <span className="font-mono text-[#1F8A84]">{activeTransfer.destination}</span>
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Automatic in-call transfer will be available in a future update.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2.5 shrink-0 w-full sm:w-auto">
-              <a
-                href={`tel:${activeTransfer.destination.replace(/[^0-9+]/g, '')}`}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 font-extrabold text-xs shadow-md hover:bg-emerald-50 active:scale-95 transition-all"
-              >
-                <span>📞 Call Directly</span>
-              </a>
-              <a
-                href={`https://wa.me/${activeTransfer.destination.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello! I was just speaking with your AI VoiceForge assistant and requested to speak with you.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/30 hover:bg-emerald-500/40 text-white font-bold text-xs border border-white/20 active:scale-95 transition-all"
-              >
-                <span>💬 WhatsApp</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => setActiveTransfer(null)}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs transition-colors"
-                title="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTransfer(null)}
+              className="self-end sm:self-center px-3 py-1.5 rounded-lg bg-white border border-[#1F8A84]/20 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors shadow-2xs"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
       )}
