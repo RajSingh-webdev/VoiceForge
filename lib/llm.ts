@@ -30,8 +30,8 @@ export async function callLLM(prompt: string, options?: CallOptions): Promise<st
     throw new Error('Missing environment variable: GEMINI_API_KEY');
   }
 
-  // Default to gemini-2.5-flash if GEMINI_MODEL is not explicitly set in Vercel
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  // Default to gemini-3.5-flash-lite / gemini-3.8-flash if GEMINI_MODEL is not explicitly set in Vercel
+  const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
   const ai = new GoogleGenAI({ apiKey });
 
