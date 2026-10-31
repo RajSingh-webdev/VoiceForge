@@ -1390,34 +1390,7 @@ export default function WritePage() {
               );
             })()}
 
-            {/* 4. Concise Conversation-Flow Preview */}
-            <div className="pt-1">
-              <span className="block text-xs font-bold text-[#0F3D3E] uppercase tracking-wider mb-2">
-                Conversation Flow Preview
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {config.flowSteps.map((step, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-xl bg-[#E8F1EF]/60 border border-[#1F8A84]/25 flex flex-col justify-between"
-                  >
-                    <div>
-                      <span className="text-[10px] font-bold text-[#1F8A84] uppercase tracking-wider block">
-                        Stage {idx + 1}
-                      </span>
-                      <p className="text-xs font-bold text-[#0F3D3E] mt-0.5 truncate">
-                        {step.title}
-                      </p>
-                    </div>
-                    <span className="text-[11px] text-gray-600 mt-2 block line-clamp-2 leading-tight">
-                      {step.instruction}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 5. Primary First-Time User CTA to Proceed to Next Stage */}
+            {/* Primary First-Time User CTA to Proceed to Next Stage */}
             <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-bold text-[#0F3D3E]">
