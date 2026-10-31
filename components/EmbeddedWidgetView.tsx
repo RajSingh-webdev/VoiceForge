@@ -27,6 +27,29 @@ export default function EmbeddedWidgetView({
   const [isMuted, setIsMuted] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState<{ role: 'caller' | 'agent'; text: string }[]>([]);
 
+  const handleLanguageSwitch = async (newLang: 'en' | 'hi') => {
+    setLang(newLang);
+    const targetAgentId = deployment?.agentId || agentId;
+    if (targetAgentId && config) {
+      try {
+        const updatedConfig: AgentConfig = {
+          ...config,
+          languages: newLang === 'hi' ? ['Hindi', 'English'] : ['English', 'Hindi'],
+        };
+        await fetch('/api/agents/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId: targetAgentId,
+            config: updatedConfig,
+          }),
+        });
+      } catch (err) {
+        console.warn('Widget language switch sync notice:', err);
+      }
+    }
+  };
+
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const conversation = useConversation({
@@ -128,13 +151,13 @@ export default function EmbeddedWidgetView({
         {hasHindi && (
           <div className="flex items-center bg-[#E8F1EF] p-0.5 rounded-lg border border-[#1F8A84]/20 text-[11px] font-bold">
             <button
-              onClick={() => setLang('hi')}
+              onClick={() => handleLanguageSwitch('hi')}
               className={`px-2 py-0.5 rounded-md transition-colors ${lang === 'hi' ? 'bg-[#0F3D3E] text-white shadow-2xs' : 'text-[#0F3D3E]'}`}
             >
               हिं
             </button>
             <button
-              onClick={() => setLang('en')}
+              onClick={() => handleLanguageSwitch('en')}
               className={`px-2 py-0.5 rounded-md transition-colors ${lang === 'en' ? 'bg-[#0F3D3E] text-white shadow-2xs' : 'text-[#0F3D3E]'}`}
             >
               EN

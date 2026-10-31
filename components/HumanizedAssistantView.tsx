@@ -23,13 +23,41 @@ export default function HumanizedAssistantView({
     (l) => l.toLowerCase().includes('hindi') || l.toLowerCase().includes('hi')
   );
 
-  const [lang, setLang] = useState<'en' | 'hi'>('en');
+  const [lang, setLang] = useState<'en' | 'hi'>(
+    (config.languages?.[0] || '').toLowerCase().includes('hindi') ||
+    (config.languages?.[0] || '').toLowerCase() === 'hi'
+      ? 'hi'
+      : 'en'
+  );
   const [callActive, setCallActive] = useState<boolean>(false);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [callError, setCallError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
   const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<Array<{ role: 'caller' | 'agent'; text: string }>>([]);
+
+  const handleLanguageSwitch = async (newLang: 'en' | 'hi') => {
+    setLang(newLang);
+    const targetAgentId = deployment?.agentId || agentId;
+    if (targetAgentId && config) {
+      try {
+        const updatedConfig: AgentConfig = {
+          ...config,
+          languages: newLang === 'hi' ? ['Hindi', 'English'] : ['English', 'Hindi'],
+        };
+        await fetch('/api/agents/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId: targetAgentId,
+            config: updatedConfig,
+          }),
+        });
+      } catch (err) {
+        console.warn('Language switch sync notice:', err);
+      }
+    }
+  };
 
 
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -245,7 +273,7 @@ export default function HumanizedAssistantView({
             <div className="flex items-center bg-[#F1F5F3] p-1 rounded-xl border border-[#DFE6DC] shrink-0 text-xs font-semibold">
               <button
                 type="button"
-                onClick={() => setLang('hi')}
+                onClick={() => handleLanguageSwitch('hi')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
                   lang === 'hi'
                     ? 'bg-white text-[#0F3D3E] shadow-2xs font-bold'
@@ -256,7 +284,7 @@ export default function HumanizedAssistantView({
               </button>
               <button
                 type="button"
-                onClick={() => setLang('en')}
+                onClick={() => handleLanguageSwitch('en')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
                   lang === 'en'
                     ? 'bg-white text-[#0F3D3E] shadow-2xs font-bold'

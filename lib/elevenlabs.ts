@@ -533,15 +533,14 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
   const systemPrompt = buildAgentSystemPrompt(config);
   const welcomeMessage = enforceAiDisclosure(config.welcomeMessage, config.name);
   const defaultVoiceId = process.env.ELEVENLABS_DEFAULT_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
-  // Note: ElevenLabs requires English Agents (agent.language: 'en') to use 'eleven_flash_v2' or turbo for global TTS,
-  // while language_presets.hi overrides tts.model_id to 'eleven_flash_v2_5' and tts.voice_id to the Indian Hindi voice.
-  const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || 'eleven_flash_v2';
-
   const hasHindi =
     Array.isArray(config.languages) &&
     config.languages.some(
       (l) => (l || '').toLowerCase().includes('hindi') || (l || '').toLowerCase() === 'hi'
     );
+
+  // When bilingual or Hindi, use eleven_multilingual_v2 for authentic native pronunciation and zero weird accents
+  const ttsModelId = process.env.ELEVENLABS_TTS_MODEL || (hasHindi ? 'eleven_multilingual_v2' : 'eleven_flash_v2');
 
   const hasEnglish =
     !Array.isArray(config.languages) ||
@@ -601,7 +600,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
   if (isHindiPrimary && chosenHindiVoiceId) {
     activeFirstMessage = welcomeMessageHindi;
     activeLanguage = 'hi';
-    activeTtsModel = 'eleven_flash_v2_5';
+    activeTtsModel = 'eleven_multilingual_v2';
     activeVoiceId = chosenHindiVoiceId;
   }
 
@@ -617,7 +616,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
             language: 'en',
           },
           tts: {
-            model_id: 'eleven_flash_v2_5',
+            model_id: 'eleven_multilingual_v2',
             voice_id: englishPresetVoiceId,
           },
         },
@@ -630,7 +629,7 @@ export function mapConfigToElevenLabsPayload(config: AgentConfig): MappedElevenL
           language: 'hi',
         },
         tts: {
-          model_id: 'eleven_flash_v2_5',
+          model_id: 'eleven_multilingual_v2',
           voice_id: chosenHindiVoiceId,
         },
       },
