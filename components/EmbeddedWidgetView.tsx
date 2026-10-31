@@ -178,16 +178,16 @@ export default function EmbeddedWidgetView({
         ) : (
           <div className="space-y-3">
             <div className="w-16 h-16 rounded-full bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-2xl mx-auto shadow-inner">
-              💬
+              🤖
             </div>
             <div>
               <p className="text-xs font-bold text-[#0F3D3E]">
-                {lang === 'hi' ? 'सीधे आवाज़ में बात करें' : 'Talk Directly by Voice'}
+                {lang === 'hi' ? 'सीधे AI असिस्टेंट से बात करें' : 'Talk with AI Assistant'}
               </p>
               <p className="text-[11px] text-gray-500 mt-1 max-w-[260px] mx-auto leading-relaxed">
                 {lang === 'hi'
-                  ? config.welcomeMessageHindi || config.welcomeMessage || 'नमस्ते! आप किसी भी सवाल के लिए सीधे कॉल शुरू कर सकते हैं।'
-                  : config.welcomeMessage || 'Start a real voice call to ask questions, check timings, or book services.'}
+                  ? config.welcomeMessageHindi || config.welcomeMessage || 'नमस्ते! आप किसी भी सवाल के लिए सीधे बातचीत शुरू कर सकते हैं।'
+                  : config.welcomeMessage || 'Speak naturally to ask questions, check timings, or learn about services.'}
               </p>
             </div>
           </div>
@@ -209,7 +209,7 @@ export default function EmbeddedWidgetView({
               className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center space-x-1.5"
             >
               <span>✕</span>
-              <span>{lang === 'hi' ? 'कॉल समाप्त करें' : 'End Voice Call'}</span>
+              <span>{lang === 'hi' ? 'बातचीत समाप्त करें' : 'End Conversation'}</span>
             </button>
             <button
               onClick={() => setIsMuted(!isMuted)}
@@ -225,16 +225,16 @@ export default function EmbeddedWidgetView({
             disabled={isStarting}
             className="w-full py-2.5 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer hover:scale-[1.01]"
           >
-            <span>{isStarting ? '⏳' : '📞'}</span>
+            <span>{isStarting ? '⏳' : '🎙️'}</span>
             <span>
               {isStarting
                 ? (lang === 'hi' ? 'कनेक्ट हो रहा है...' : 'Connecting...')
-                : (lang === 'hi' ? 'आवाज़ में बात शुरू करें' : 'Start Voice Call')}
+                : (lang === 'hi' ? 'बोलकर बात शुरू करें' : 'Start Talking with AI')}
             </span>
           </button>
         )}
         <p className="text-[10px] text-gray-400 text-center mt-2">
-          Powered by VoiceForge • Secure WebRTC Voice
+          Powered by VoiceForge • Interactive AI Voice Assistant
         </p>
       </div>
     </div>

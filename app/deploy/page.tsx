@@ -279,7 +279,7 @@ export default function DeployPage() {
                           Shareable Web Link
                         </h3>
                         <p className="text-xs text-gray-600">
-                          Share this link with your customers or clients for instant voice calls in their browser.
+                          Share this link with your customers or clients to talk directly with your AI voice assistant in their browser.
                         </p>
                       </div>
                     </div>
@@ -318,7 +318,7 @@ export default function DeployPage() {
                           Website Voice Widget
                         </h3>
                         <p className="text-xs text-gray-600">
-                          Embed an interactive voice calling widget on any webpage or website with a single copy-paste snippet.
+                          Embed an interactive AI voice assistant widget on any webpage or website with a single copy-paste snippet.
                         </p>
                       </div>
                     </div>
