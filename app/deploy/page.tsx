@@ -269,23 +269,18 @@ export default function DeployPage() {
                 </h2>
 
                 <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                        🔗
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-[#0F3D3E]">
-                          Shareable Web Link
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          Share this link with your customers or clients to talk directly with your AI voice assistant in their browser.
-                        </p>
-                      </div>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
+                      🔗
                     </div>
-                    <span className="text-[11px] font-bold text-[#1F8A84] uppercase tracking-wider bg-[#E8F1EF] px-2.5 py-1 rounded-full border border-[#1F8A84]/20 shrink-0">
-                      Active Link
-                    </span>
+                    <div>
+                      <h3 className="text-base font-bold text-[#0F3D3E]">
+                        Shareable Web Link
+                      </h3>
+                      <p className="text-xs text-gray-600">
+                        Share this link with your customers or clients to talk directly with your AI voice assistant in their browser.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-gray-100">
@@ -308,23 +303,18 @@ export default function DeployPage() {
 
                 {/* Website Widget Embed Feature */}
                 <div className="mt-6 bg-white p-4 sm:p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
-                        🧩
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-[#0F3D3E]">
-                          Website Voice Widget
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          Embed an interactive AI voice assistant widget on any webpage or website with a single copy-paste snippet.
-                        </p>
-                      </div>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
+                      🧩
                     </div>
-                    <span className="text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider bg-[#E8F1EF] px-2.5 py-1 rounded-full border border-[#1F8A84]/30 shrink-0">
-                      Embeddable
-                    </span>
+                    <div>
+                      <h3 className="text-base font-bold text-[#0F3D3E]">
+                        Website Voice Widget
+                      </h3>
+                      <p className="text-xs text-gray-600">
+                        Embed an interactive AI voice assistant widget on any webpage or website with a single copy-paste snippet.
+                      </p>
+                    </div>
                   </div>
 
                   {/* Widget Position Selector */}
