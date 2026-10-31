@@ -40,12 +40,7 @@ function TestConversationInner() {
   const [selectedAgentSource, setSelectedAgentSource] = useState<'handmade' | 'deployed'>('deployed');
   const [draftConfig, setDraftConfig] = useState<AgentConfig | null>(null);
 
-  // Live Call Transfer state
-  const [activeTransfer, setActiveTransfer] = useState<{
-    destination: string;
-    reason: string;
-    timestamp: string;
-  } | null>(null);
+
 
   const callerFinishedTimeRef = useRef<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -243,11 +238,6 @@ function TestConversationInner() {
           '+91 6201228417';
 
         addEvent('Human Escalation Info', `Informed caller to contact human staff at ${dest}. Direct phone calls will be available in a future update.`);
-        setActiveTransfer({
-          destination: dest,
-          reason: props?.reason || 'Caller requested human handoff',
-          timestamp: new Date().toLocaleTimeString(),
-        });
 
         return `You can reach our team or senior staff directly at ${dest}. Automatic in-call phone transfer will be available in a future update.`;
       },
@@ -577,41 +567,6 @@ function TestConversationInner() {
           <span>Use headphones to avoid acoustic echo</span>
         </span>
       </div>
-
-      {/* Human Contact Info Banner */}
-      {activeTransfer && (
-        <div className="bg-[#E8F1EF] border border-[#1F8A84]/30 text-[#0F3D3E] p-4 sm:p-5 rounded-2xl shadow-xs animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center space-x-3 text-left">
-              <span className="w-10 h-10 rounded-xl bg-[#0F3D3E] text-white flex items-center justify-center text-lg shrink-0">
-                👤
-              </span>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#1F8A84]">
-                    Senior / Staff Contact Info
-                  </span>
-                  <span className="text-[11px] text-gray-500">{activeTransfer.timestamp}</span>
-                </div>
-                <p className="text-sm font-extrabold text-[#0F3D3E] mt-0.5">
-                  You can contact at: <span className="font-mono text-[#1F8A84]">{activeTransfer.destination}</span>
-                </p>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Automatic in-call transfer will be available in a future update.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveTransfer(null)}
-              className="self-end sm:self-center px-3 py-1.5 rounded-lg bg-white border border-[#1F8A84]/20 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors shadow-2xs"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Voice Interaction Card */}
       <div className="bg-white p-4 sm:p-8 rounded-2xl border-2 border-[#1F8A84]/30 shadow-sm text-center">

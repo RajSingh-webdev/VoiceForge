@@ -30,11 +30,7 @@ export default function HumanizedAssistantView({
   const [callDuration, setCallDuration] = useState<number>(0);
   const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<Array<{ role: 'caller' | 'agent'; text: string }>>([]);
-  const [activeTransfer, setActiveTransfer] = useState<{
-    destination: string;
-    reason: string;
-    timestamp: string;
-  } | null>(null);
+
 
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -90,11 +86,7 @@ export default function HumanizedAssistantView({
           config.knowledge?.contact ||
           '+91 6201228417';
 
-        setActiveTransfer({
-          destination: dest,
-          reason: props?.reason || 'Caller requested human handoff',
-          timestamp: new Date().toLocaleTimeString(),
-        });
+
 
         return lang === 'hi'
           ? `आप हमारे वरिष्ठ अधिकारी से सीधे ${dest} पर संपर्क कर सकते हैं। स्वचालित कॉल ट्रांसफर भविष्य के अपडेट में उपलब्ध होगा।`
@@ -276,44 +268,6 @@ export default function HumanizedAssistantView({
             </div>
           )}
         </header>
-
-        {/* Human Contact Info Banner */}
-        {activeTransfer && (
-          <div className="bg-[#E8F1EF] border border-[#1F8A84]/30 text-[#0F3D3E] p-4 sm:p-5 rounded-2xl shadow-xs animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center space-x-3 text-left">
-                <span className="w-10 h-10 rounded-xl bg-[#0F3D3E] text-white flex items-center justify-center text-lg shrink-0">
-                  👤
-                </span>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#1F8A84]">
-                      {lang === 'hi' ? 'वरिष्ठ अधिकारी संपर्क' : 'Senior / Staff Contact Info'}
-                    </span>
-                    <span className="text-[11px] text-gray-500">{activeTransfer.timestamp}</span>
-                  </div>
-                  <p className="text-sm font-extrabold text-[#0F3D3E] mt-0.5">
-                    {lang === 'hi' ? 'आप संपर्क कर सकते हैं: ' : 'You can contact at: '}
-                    <span className="font-mono text-[#1F8A84]">{activeTransfer.destination}</span>
-                  </p>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    {lang === 'hi'
-                      ? 'स्वचालित कॉल ट्रांसफर भविष्य के अपडेट में उपलब्ध होगा।'
-                      : 'Automatic in-call transfer will be available in a future update.'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveTransfer(null)}
-                className="self-end sm:self-center px-3 py-1.5 rounded-lg bg-white border border-[#1F8A84]/20 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors shadow-2xs"
-              >
-                {lang === 'hi' ? 'बंद करें' : 'Dismiss'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* 2. WELCOMING INTRODUCTION CARD */}
         <div className="bg-white rounded-3xl p-4 sm:p-7 border border-[#E2E8F0] shadow-xs text-center space-y-3">
