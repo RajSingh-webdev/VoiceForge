@@ -21,7 +21,9 @@ export default function DeployPage() {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [copiedEmbed, setCopiedEmbed] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
+  const [widgetPosition, setWidgetPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
 
 
   // Read stored deployment for the active assistant configuration
@@ -107,11 +109,28 @@ export default function DeployPage() {
 
   const shareUrl = deployment ? `${origin}/agent/${deployment.agentId}` : '';
 
+  const embedSnippet = deployment
+    ? `<!-- VoiceForge Voice Assistant Widget -->
+<iframe
+  src="${origin}/agent/${deployment.agentId}?embed=true"
+  title="${config?.name || 'Voice Assistant'}"
+  style="position:fixed;${widgetPosition === 'bottom-right' ? 'right:20px;' : 'left:20px;'}bottom:20px;width:380px;height:560px;border:none;border-radius:18px;box-shadow:0 12px 36px rgba(15,61,62,0.22);z-index:99999;"
+  allow="microphone"
+></iframe>`
+    : '';
+
   const handleCopyLink = () => {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyEmbed = () => {
+    if (!embedSnippet) return;
+    navigator.clipboard.writeText(embedSnippet);
+    setCopiedEmbed(true);
+    setTimeout(() => setCopiedEmbed(false), 2500);
   };
 
   return (
@@ -127,7 +146,7 @@ export default function DeployPage() {
               {deployment?.isSample && <SampleDataBadge />}
             </div>
             <p className="mt-2 text-base text-[#1F8A84] leading-relaxed">
-              Share your voice assistant directly with customers and clients via a simple web link.
+              Deploy your voice assistant directly to your website with an embeddable widget or shareable web link.
             </p>
           </div>
         </div>
@@ -287,12 +306,69 @@ export default function DeployPage() {
                   </div>
                 </div>
 
-                {/* Phone Deployment Note */}
-                <div className="mt-4 p-4 rounded-xl bg-[#E8F1EF] border border-[#1F8A84]/25 flex items-center space-x-3 text-xs text-[#0F3D3E]">
-                  <span className="text-lg shrink-0">📞</span>
-                  <p className="leading-relaxed">
-                    <strong>Phone deployment — Coming Soon.</strong> Your assistant currently works through its shareable web link.
-                  </p>
+                {/* Website Widget Embed Feature */}
+                <div className="mt-6 bg-white p-4 sm:p-6 rounded-2xl border border-[#1F8A84]/25 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#E8F1EF] text-[#0F3D3E] flex items-center justify-center text-lg font-bold">
+                        🧩
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-[#0F3D3E]">
+                          Website Voice Widget
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Embed an interactive voice calling widget on any webpage or website with a single copy-paste snippet.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#0F3D3E] uppercase tracking-wider bg-[#E8F1EF] px-2.5 py-1 rounded-full border border-[#1F8A84]/30 shrink-0">
+                      Embeddable
+                    </span>
+                  </div>
+
+                  {/* Widget Position Selector */}
+                  <div className="flex items-center space-x-3 text-xs mb-3 text-gray-700">
+                    <span className="font-semibold text-[#0F3D3E]">Widget Position:</span>
+                    <label className="flex items-center space-x-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="widgetPosition"
+                        checked={widgetPosition === 'bottom-right'}
+                        onChange={() => setWidgetPosition('bottom-right')}
+                        className="text-[#1F8A84] focus:ring-[#1F8A84]"
+                      />
+                      <span>Bottom Right</span>
+                    </label>
+                    <label className="flex items-center space-x-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="widgetPosition"
+                        checked={widgetPosition === 'bottom-left'}
+                        onChange={() => setWidgetPosition('bottom-left')}
+                        className="text-[#1F8A84] focus:ring-[#1F8A84]"
+                      />
+                      <span>Bottom Left</span>
+                    </label>
+                  </div>
+
+                  {/* Code snippet display */}
+                  <div className="relative rounded-xl bg-gray-900 text-gray-100 p-3 sm:p-4 text-xs font-mono overflow-x-auto border border-gray-800">
+                    <pre className="whitespace-pre-wrap break-all leading-relaxed">{embedSnippet}</pre>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-gray-100 mt-4">
+                    <button
+                      type="button"
+                      onClick={handleCopyEmbed}
+                      className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold transition-colors flex items-center justify-center space-x-2 shadow-xs"
+                    >
+                      <span>{copiedEmbed ? '✓ Snippet Copied!' : '📋 Copy Widget Code'}</span>
+                    </button>
+                    <span className="text-xs text-gray-500">
+                      Paste before the closing &lt;/body&gt; tag of your HTML or website builder (WordPress, Webflow, Shopify).
+                    </span>
+                  </div>
                 </div>
               </div>
 
