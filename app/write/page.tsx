@@ -587,27 +587,6 @@ export default function WritePage() {
         <p className="mt-2 text-lg text-[#1F8A84] max-w-2xl leading-relaxed">
           Describe what you need in your own words, or provide your website to automatically extract verified business details.
         </p>
-
-        {/* How it works info card */}
-        <div className="mt-6 bg-[#E8F1EF] border border-[#1F8A84]/20 rounded-xl p-4 sm:p-5">
-          <p className="text-sm font-semibold text-[#0F3D3E] uppercase tracking-wider mb-2">
-            How it works
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-[#0F3D3E]/90">
-            <div className="flex items-start space-x-2">
-              <span className="w-6 h-6 rounded-full bg-[#0F3D3E] text-white flex items-center justify-center text-xs font-bold shrink-0">1</span>
-              <span><strong>Describe or Link:</strong> Write what you need or paste your website URL.</span>
-            </div>
-            <div className="flex items-start space-x-2">
-              <span className="w-6 h-6 rounded-full bg-[#0F3D3E] text-white flex items-center justify-center text-xs font-bold shrink-0">2</span>
-              <span><strong>Extract & Generate:</strong> Gemini creates flow steps, guardrails, and verified facts.</span>
-            </div>
-            <div className="flex items-start space-x-2">
-              <span className="w-6 h-6 rounded-full bg-[#0F3D3E] text-white flex items-center justify-center text-xs font-bold shrink-0">3</span>
-              <span><strong>Review:</strong> Customize every detail in your draft setup below.</span>
-            </div>
-          </div>
-        </div>
       </header>
 
       {/* Website Input Section (Requirement 1) */}
