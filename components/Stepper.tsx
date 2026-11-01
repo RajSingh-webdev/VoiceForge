@@ -17,7 +17,7 @@ export default function Stepper() {
   const pathname = usePathname();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
-  if (pathname.startsWith('/agent') || pathname.startsWith('/krishi')) {
+  if (pathname === '/' || pathname.startsWith('/agent')) {
     return null;
   }
 

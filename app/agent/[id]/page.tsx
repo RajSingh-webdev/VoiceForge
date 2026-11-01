@@ -1,57 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { ConversationProvider, useConversation } from '@elevenlabs/react';
-import SampleDataBadge from '@/components/SampleDataBadge';
-import KrishiAssistantView from '@/components/krishi/KrishiAssistantView';
+import { ConversationProvider } from '@elevenlabs/react';
 import HumanizedAssistantView from '@/components/HumanizedAssistantView';
 import EmbeddedWidgetView from '@/components/EmbeddedWidgetView';
 import { AgentConfig, AgentDeployment, isValidAgentConfig } from '@/lib/types';
-import { getDeploymentsMap, isMatchingAgentName } from '@/lib/sync';
+import { isMatchingAgentName } from '@/lib/sync';
 
 const DEPLOYMENT_STORAGE_KEY = 'voiceforge:deployment';
 const AGENT_STORAGE_KEY = 'voiceforge:agent';
-
-const KRISHI_DEFAULT_CONFIG: AgentConfig = {
-  name: 'Krishi Seva Kendra',
-  persona: 'आप कृषि सेवा केंद्र के समर्पित, विनम्र और धैर्यवान सहायक हैं। आप किसानों को सरल, स्पष्ट और व्यावहारिक हिंदी में सलाह देते हैं।',
-  goals: [
-    'किसानों को मिट्टी की जाँच, मौसम और सरकारी योजनाओं की सही जानकारी देना',
-    'कॉल करने वाले किसानों की समस्याओं को धैर्य से सुनना और समाधान सुझाना',
-    'ज़रूरत पड़ने पर कॉल को तुरंत मानव कृषि अधिकारी को स्थानांतरित करना',
-  ],
-  flowSteps: [
-    { title: 'स्वागत', instruction: 'नमस्ते! मैं कृषि सेवा केंद्र का AI सहायक हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?' },
-    { title: 'समस्या की पहचान', instruction: 'किसान से उनकी फसल, ज़मीन या समस्या के बारे में विस्तार से पूछें।' },
-    { title: 'मार्गदर्शन या समाधान', instruction: 'सटीक और सत्यापित कृषि सलाह दें।' },
-    { title: 'समापन या अधिकारी ट्रांसफर', instruction: 'संतुष्टि पूछें और ज़रूरत होने पर कृषि अधिकारी से कनेक्ट करें।' },
-  ],
-  welcomeMessage: 'Namaste! Welcome to Krishi Seva Kendra. How can I help you with your farming or crops today?',
-  welcomeMessageHindi: 'नमस्ते! मैं कृषि सेवा केंद्र का AI सहायक हूँ। खेती, मौसम या मिट्टी की जाँच से जुड़ी क्या जानकारी चाहिए?',
-  languages: ['Hindi', 'English'],
-  voiceSuggestion: 'Ritu Rathore — Natural Indian Hindi',
-  voiceId: 'fTfuemKGBjYqG4ni4gw3',
-  guardrails: [
-    'यह हमेशा स्पष्ट करें कि आप एक AI सहायक हैं।',
-    'कभी भी बिना सत्यापन वाली सरकारी योजनाओं या कीटनाशकों की गलत जानकारी न दें।',
-    'गंभीर या आपातकालीन कृषि समस्याओं के लिए किसान को कृषि अधिकारी से संपर्क करने को कहें।',
-  ],
-  tools: [
-    {
-      name: 'मिट्टी जाँच अपॉइंटमेंट',
-      purpose: 'Record and confirm soil testing requests for local agricultural laboratories.',
-      status: 'Ready',
-    },
-    {
-      name: 'कृषि अधिकारी संपर्क',
-      purpose: 'Connect caller to human agricultural extension officer.',
-      status: 'Ready',
-    },
-  ],
-};
-
 
 export default function PublicAgentPage() {
   const params = useParams();
@@ -59,34 +18,26 @@ export default function PublicAgentPage() {
   const isEmbed = searchParams?.get('embed') === 'true';
   const agentId = typeof params?.id === 'string' ? params.id : '';
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [deployment, setDeployment] = useState<AgentDeployment | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
     async function loadAgent() {
-      setIsLoading(true);
-      setNotFound(false);
+      if (!agentId) {
+        setNotFound(true);
+        setIsLoading(false);
+        return;
+      }
 
-      // 1. Try local storage first
+      // 1. Try local storage for fast instant load
       try {
-        const map = getDeploymentsMap();
-        for (const dep of Object.values(map)) {
-          if (dep && dep.agentId === agentId) {
-            setDeployment(dep);
-            break;
-          }
-        }
-
-        const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
-        const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
-
-        if (storedAgent) {
-          const parsedAgent = JSON.parse(storedAgent);
-          if (isValidAgentConfig(parsedAgent)) {
+        if (typeof window !== 'undefined') {
+          const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
+          if (storedAgent) {
+            const parsedAgent = JSON.parse(storedAgent);
+            const storedDeployment = window.localStorage.getItem(DEPLOYMENT_STORAGE_KEY);
             let parsedDeployment: AgentDeployment | null = null;
             if (storedDeployment) {
               try {
@@ -174,25 +125,7 @@ export default function PublicAgentPage() {
         // Fallback
       }
 
-      // 3. Fallback for Krishi Seva Kendra demo / direct routes
-      if (
-        agentId === 'krishi' ||
-        agentId === 'krishi-seva-kendra' ||
-        agentId === 'rural-helpline' ||
-        agentId.toLowerCase().includes('krishi')
-      ) {
-        setConfig(KRISHI_DEFAULT_CONFIG);
-        setDeployment({
-          agentId: agentId || 'krishi-seva-kendra',
-          name: 'Krishi Seva Kendra',
-          createdAt: new Date().toISOString(),
-          isSample: false,
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // 4. Fallback to active localStorage draft agent if available
+      // 3. Fallback to active localStorage draft agent if available
       try {
         const storedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
         if (storedAgent) {
@@ -270,18 +203,6 @@ export default function PublicAgentPage() {
     );
   }
 
-  const isKrishi =
-    agentId === 'krishi' ||
-    agentId === 'krishi-seva-kendra' ||
-    agentId.toLowerCase().includes('krishi') ||
-    (config?.name && (
-      config.name.toLowerCase().includes('krishi') ||
-      config.name.toLowerCase().includes('agricultural') ||
-      config.name.toLowerCase().includes('kendra') ||
-      config.name.toLowerCase().includes('kisan') ||
-      config.name.toLowerCase().includes('rural')
-    ));
-
   if (isEmbed) {
     return (
       <ConversationProvider>
@@ -289,19 +210,6 @@ export default function PublicAgentPage() {
           agentId={deployment?.agentId || agentId}
           config={config}
           deployment={deployment}
-        />
-      </ConversationProvider>
-    );
-  }
-
-  if (isKrishi) {
-    return (
-      <ConversationProvider>
-        <KrishiAssistantView
-          agentId={deployment?.agentId || agentId}
-          config={config}
-          deployment={deployment}
-          isEmbed={isEmbed}
         />
       </ConversationProvider>
     );
