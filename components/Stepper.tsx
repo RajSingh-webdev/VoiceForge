@@ -6,11 +6,11 @@ import { usePathname } from 'next/navigation';
 import HelpModal from './HelpModal';
 
 const steps = [
-  { name: 'Write', path: '/write' },
-  { name: 'Test', path: '/test' },
-  { name: 'Refine', path: '/refine' },
-  { name: 'Deploy', path: '/deploy' },
-  { name: 'Observe', path: '/observe' },
+  { name: 'Write', path: '/write', icon: '✍️' },
+  { name: 'Test', path: '/test', icon: '🎙️' },
+  { name: 'Refine', path: '/refine', icon: '🪄' },
+  { name: 'Deploy', path: '/deploy', icon: '🚀' },
+  { name: 'Observe', path: '/observe', icon: '📊' },
 ];
 
 export default function Stepper() {
@@ -23,16 +23,17 @@ export default function Stepper() {
 
   return (
     <>
-      <nav className="w-full bg-white border-b border-[#E8F1EF] py-2.5 sm:py-3.5 px-3 sm:px-8 shadow-xs sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-3 md:gap-0 relative">
-          {/* Top / Left: Brand Logo & Mobile Help Button */}
-          <div className="w-full md:w-auto flex items-center justify-between md:justify-start z-10 shrink-0">
+      <nav className="w-full bg-white/95 backdrop-blur-md border-b border-[#E8F1EF] py-2.5 sm:py-3 px-3 sm:px-8 shadow-2xs sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+          {/* Left: Brand Logo & Home indicator */}
+          <div className="flex items-center space-x-3 shrink-0 z-10">
             <Link
-              href="/write"
-              className="flex items-center space-x-2.5 text-[#0F3D3E] hover:opacity-90 transition-opacity"
+              href="/"
+              className="flex items-center space-x-2.5 text-[#0F3D3E] hover:opacity-90 transition-opacity group"
               id="brand-logo"
+              title="Return to VoiceForge Home"
             >
-              <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0F3D3E] to-[#1F8A84] flex items-center justify-center text-white font-extrabold text-sm shadow-xs shrink-0">
+              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0F3D3E] to-[#1F8A84] flex items-center justify-center text-white font-extrabold text-sm shadow-xs group-hover:scale-105 transition-transform">
                 🎙️
               </span>
               <span className="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F3D3E]">
@@ -40,56 +41,67 @@ export default function Stepper() {
               </span>
             </Link>
 
-            {/* Mobile Help Button */}
-            <button
-              onClick={() => setIsHelpOpen(true)}
-              className="md:hidden flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#0F3D3E] bg-[#E8F1EF] hover:bg-[#1F8A84]/20 border border-[#1F8A84]/30 transition-all cursor-pointer shadow-2xs"
-              title="How VoiceForge works"
-            >
-              <span>ℹ️</span>
-              <span>Help</span>
-            </button>
+            <span className="hidden sm:inline-block text-[11px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+              Studio
+            </span>
           </div>
 
-          {/* Stepper Navigation Steps */}
-          <div className="w-full md:absolute md:inset-0 md:flex md:items-center md:justify-center pointer-events-none overflow-hidden">
-            <div className="flex items-center justify-start md:justify-center space-x-1.5 sm:space-x-3 overflow-x-auto no-scrollbar touch-scroll max-w-full py-0.5 px-1 pointer-events-auto">
-              {steps.map((step, index) => {
+          {/* Stepper Navigation Steps (Segmented Pill) */}
+          <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none">
+            <div className="flex items-center p-1 bg-[#F4F7F5] rounded-xl border border-[#1F8A84]/20 pointer-events-auto shadow-2xs">
+              {steps.map((step) => {
                 const isActive = pathname === step.path;
                 return (
-                  <div key={step.path} className="flex items-center shrink-0">
-                    <Link
-                      href={step.path}
-                      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
-                        isActive
-                          ? 'bg-[#0F3D3E] text-white shadow-xs'
-                          : 'text-[#1F8A84] hover:bg-[#E8F1EF] hover:text-[#0F3D3E]'
-                      }`}
-                    >
-                      {step.name}
-                    </Link>
-                    {index < steps.length - 1 && (
-                      <span className="ml-1.5 sm:ml-3 text-[#1F8A84]/40 font-semibold select-none text-xs sm:text-sm">
-                        &gt;
-                      </span>
-                    )}
-                  </div>
+                  <Link
+                    key={step.path}
+                    href={step.path}
+                    className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      isActive
+                        ? 'bg-[#0F3D3E] text-white shadow-xs scale-[1.02]'
+                        : 'text-[#0F3D3E]/70 hover:text-[#0F3D3E] hover:bg-white/60'
+                    }`}
+                  >
+                    <span className="text-xs">{step.icon}</span>
+                    <span>{step.name}</span>
+                  </Link>
                 );
               })}
             </div>
           </div>
 
-          {/* Desktop Right side: Help / How it works button */}
-          <div className="hidden md:flex items-center justify-end z-10 shrink-0">
+          {/* Right side: Help / How it works button */}
+          <div className="flex items-center space-x-2 shrink-0 z-10">
             <button
               onClick={() => setIsHelpOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#0F3D3E] bg-[#E8F1EF] hover:bg-[#1F8A84]/20 border border-[#1F8A84]/30 transition-all cursor-pointer shadow-2xs"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0F3D3E] bg-[#E8F1EF] hover:bg-[#1F8A84]/20 border border-[#1F8A84]/30 transition-all cursor-pointer shadow-2xs"
               title="How VoiceForge works"
             >
               <span>ℹ️</span>
-              <span>How It Works</span>
+              <span className="hidden sm:inline">How It Works</span>
+              <span className="sm:hidden">Help</span>
             </button>
           </div>
+        </div>
+
+        {/* Mobile-only horizontal scroll stepper */}
+        <div className="md:hidden mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between overflow-x-auto no-scrollbar touch-scroll gap-1">
+          {steps.map((step) => {
+            const isActive = pathname === step.path;
+            return (
+              <Link
+                key={step.path}
+                href={step.path}
+                className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-[#0F3D3E] text-white shadow-2xs'
+                    : 'text-[#1F8A84] hover:bg-[#E8F1EF]'
+                }`}
+              >
+                <span>{step.icon}</span>
+                <span>{step.name}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
 

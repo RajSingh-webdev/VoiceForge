@@ -13,42 +13,63 @@ export default function AgentSummaryCard() {
 
   if (!config) {
     return (
-      <div className="mt-6 p-4 rounded-xl bg-white border border-[#1F8A84]/25 text-center">
-        <p className="text-sm text-[#0F3D3E] font-medium mb-3">
-          No agent yet, start on the Write page
-        </p>
+      <div className="p-4 rounded-2xl bg-white border border-[#1F8A84]/20 shadow-xs flex items-center justify-between text-left">
+        <div className="flex items-center space-x-3">
+          <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold border border-amber-200">
+            ⚠️
+          </span>
+          <div>
+            <p className="text-xs font-bold text-[#0F3D3E]">
+              No active draft assistant found
+            </p>
+            <p className="text-[11px] text-gray-500">
+              Start on the Write page to describe or paste your website.
+            </p>
+          </div>
+        </div>
         <Link
           href="/write"
-          className="inline-block px-4 py-2 bg-[#0F3D3E] text-white text-xs font-bold rounded-lg hover:bg-[#1F8A84] transition-colors"
+          className="px-3.5 py-1.5 bg-[#0F3D3E] hover:bg-[#1F8A84] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
         >
-          Go to Write page &rarr;
+          Go to Write &rarr;
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="mt-6 p-5 rounded-xl bg-white border border-[#1F8A84]/25 text-left shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#1F8A84]">
-          Current Draft Agent
-        </span>
-        <Link
-          href="/write"
-          className="text-xs font-bold text-[#0F3D3E] hover:text-[#1F8A84] underline"
-        >
-          &larr; Back to Write
-        </Link>
+    <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-white via-white to-[#F4F8F6] border border-[#1F8A84]/20 text-left shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center space-x-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0F3D3E] to-[#1F8A84] text-white flex items-center justify-center text-base font-extrabold shadow-2xs shrink-0">
+          🤖
+        </div>
+        <div>
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F8A84] bg-[#E8F1EF] px-2 py-0.5 rounded-full">
+              Active Draft
+            </span>
+            <h3 className="text-sm font-extrabold text-[#0F3D3E] truncate max-w-[200px] sm:max-w-xs">
+              {config.name}
+            </h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 mt-1">
+            <span>
+              <strong className="text-gray-700">Voice:</strong> {config.voiceName || 'Rachel (Natural)'}
+            </span>
+            <span>•</span>
+            <span>
+              <strong className="text-gray-700">Languages:</strong> {config.languages.join(', ')}
+            </span>
+          </div>
+        </div>
       </div>
-      <h3 className="text-base font-bold text-[#0F3D3E]">{config.name}</h3>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#1F8A84] mt-1">
-        <p>
-          <strong>Languages:</strong> {config.languages.join(', ')}
-        </p>
-        <p>
-          <strong>Voice:</strong> {config.voiceName || 'Rachel (Default)'}
-        </p>
-      </div>
+
+      <Link
+        href="/write"
+        className="self-end sm:self-center text-xs font-bold text-[#1F8A84] hover:text-[#0F3D3E] px-3 py-1.5 rounded-xl hover:bg-[#E8F1EF] border border-[#1F8A84]/25 transition-all"
+      >
+        Edit Configuration ✍️
+      </Link>
     </div>
   );
 }

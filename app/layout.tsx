@@ -20,10 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="bg-white text-[#0F3D3E] min-h-screen flex flex-col overflow-x-hidden antialiased selection:bg-[#1F8A84]/20">
+    <html lang="en">
+      <body className="bg-white text-[#0F3D3E] min-h-screen flex flex-col antialiased selection:bg-[#1F8A84]/20">
         <Stepper />
-        <main className="flex-1 flex flex-col w-full overflow-x-hidden">
+        <main className="flex-1 flex flex-col w-full">
           {children}
         </main>
       </body>
